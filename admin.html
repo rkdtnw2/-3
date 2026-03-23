@@ -31,7 +31,7 @@
     }
 
     .wrap{
-      max-width:1400px;
+      max-width:1480px;
       margin:0 auto;
       padding:24px;
     }
@@ -217,6 +217,7 @@
       font-size:.92rem;
       margin-top:4px;
       white-space:pre-line;
+      line-height:1.6;
     }
 
     .item-actions{
@@ -307,11 +308,11 @@
     <div class="top">
       <div>
         <div class="title">유림 텔레콤 관리자 페이지</div>
-        <div class="sub">구글시트 없이 직접 수정하고 저장하는 버전</div>
+        <div class="sub">콘텐츠 / 회원 / 비밀번호 재설정 관리</div>
       </div>
 
       <div class="actions">
-        <button class="btn-secondary" onclick="location.href='index.html'">홈페이지 보기</button>
+        <button class="btn-secondary" onclick="location.href='/-3/index.html'">홈페이지 보기</button>
         <button class="btn-danger" onclick="resetAllData()">전체 초기화</button>
         <button class="btn-primary" onclick="saveAll()">저장하기</button>
       </div>
@@ -324,6 +325,7 @@
           <button data-tab="sop">SOP 관리</button>
           <button data-tab="edu">상품자료 관리</button>
           <button data-tab="test">테스트 관리</button>
+          <button data-tab="members">회원 관리</button>
         </div>
         <div class="status" id="saveStatus">저장 전</div>
       </aside>
@@ -555,14 +557,55 @@
 
           <div class="list" id="testList"></div>
         </div>
+
+        <div class="tab-content hidden" id="tab-members">
+          <h2 class="section-title">회원 관리</h2>
+          <div class="section-desc">회원 조회 / 수정 / 삭제 / 비밀번호 재설정을 할 수 있습니다.</div>
+
+          <div class="card">
+            <div class="row-3">
+              <div class="field">
+                <label>근무 지점</label>
+                <input id="memberBranch" />
+              </div>
+              <div class="field">
+                <label>이름</label>
+                <input id="memberName" />
+              </div>
+              <div class="field">
+                <label>생년월일</label>
+                <input id="memberBirth" />
+              </div>
+            </div>
+
+            <div class="row-3">
+              <div class="field">
+                <label>핸드폰번호</label>
+                <input id="memberPhone" />
+              </div>
+              <div class="field">
+                <label>아이디</label>
+                <input id="memberUsername" />
+              </div>
+              <div class="field">
+                <label>비밀번호</label>
+                <input id="memberPassword" />
+              </div>
+            </div>
+
+            <button class="btn-primary" onclick="addOrUpdateMember()">회원 저장</button>
+          </div>
+
+          <div class="list" id="memberList"></div>
+        </div>
       </section>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = "yurim_telecom_admin_data_v1";
-    const ADMIN_PASSWORD = "ureem!";
-    const SESSION_KEY = "yurim_admin_auth";
+    const STORAGE_KEY = "yurim_telecom_admin_data_v2";
+    const ADMIN_PASSWORD = "0728";
+    const SESSION_KEY = "yurim_admin_auth_v1";
 
     const defaultData = {
       home: {
@@ -577,11 +620,12 @@
       },
       sop: [],
       edu: [],
-      test: []
+      test: [],
+      members: []
     };
 
     let state = structuredClone(defaultData);
-    let editIndex = { sop:-1, edu:-1, test:-1 };
+    let editIndex = { sop:-1, edu:-1, test:-1, member:-1 };
 
     function qs(id){ return document.getElementById(id); }
 
@@ -591,22 +635,23 @@
       el.className = "status " + (ok ? "ok" : "danger");
     }
 
-    function saveAll() {
-      collectHomeFields();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      renderAll();
-      setStatus("저장 완료", true);
-    }
-
     function loadAll() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) state = JSON.parse(raw);
+        else localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch (e) {
         state = structuredClone(defaultData);
       }
       fillHomeFields();
       renderAll();
+    }
+
+    function saveAll() {
+      collectHomeFields();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+      setStatus("저장 완료", true);
     }
 
     function resetAllData() {
@@ -618,6 +663,7 @@
       resetSopForm();
       resetEduForm();
       resetTestForm();
+      resetMemberForm();
       setStatus("전체 초기화 완료", true);
     }
 
@@ -854,10 +900,94 @@
       `).join("") || `<div class="item-sub">등록된 테스트 없음</div>`;
     }
 
+    function addOrUpdateMember() {
+      const item = {
+        id: editIndex.member >= 0 ? state.members[editIndex.member].id : (crypto.randomUUID ? crypto.randomUUID() : "m_" + Date.now()),
+        branch: qs("memberBranch").value.trim(),
+        name: qs("memberName").value.trim(),
+        birth: qs("memberBirth").value.trim(),
+        phone: qs("memberPhone").value.trim(),
+        username: qs("memberUsername").value.trim(),
+        password: qs("memberPassword").value.trim(),
+        createdAt: editIndex.member >= 0 ? state.members[editIndex.member].createdAt : new Date().toISOString()
+      };
+
+      if (!item.branch || !item.name || !item.birth || !item.phone || !item.username || !item.password) {
+        setStatus("회원 정보는 전부 입력해야 해", false);
+        return;
+      }
+
+      const duplicated = state.members.find((m, idx) => m.username === item.username && idx !== editIndex.member);
+      if (duplicated) {
+        setStatus("이미 사용 중인 아이디야", false);
+        return;
+      }
+
+      if (editIndex.member >= 0) state.members[editIndex.member] = item;
+      else state.members.push(item);
+
+      resetMemberForm();
+      saveAll();
+    }
+
+    function editMember(index) {
+      const item = state.members[index];
+      editIndex.member = index;
+      qs("memberBranch").value = item.branch || "";
+      qs("memberName").value = item.name || "";
+      qs("memberBirth").value = item.birth || "";
+      qs("memberPhone").value = item.phone || "";
+      qs("memberUsername").value = item.username || "";
+      qs("memberPassword").value = item.password || "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteMember(index) {
+      if (!confirm("이 회원을 삭제할까?")) return;
+      state.members.splice(index, 1);
+      saveAll();
+    }
+
+    function resetMemberPassword(index) {
+      const nextPw = prompt("새 비밀번호를 입력해");
+      if (nextPw === null) return;
+      if (!nextPw.trim()) {
+        setStatus("비밀번호가 비어있어", false);
+        return;
+      }
+      state.members[index].password = nextPw.trim();
+      saveAll();
+    }
+
+    function resetMemberForm() {
+      editIndex.member = -1;
+      ["memberBranch","memberName","memberBirth","memberPhone","memberUsername","memberPassword"].forEach(id => qs(id).value = "");
+    }
+
+    function renderMemberList() {
+      const list = qs("memberList");
+      list.innerHTML = state.members.map((item, index) => `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-title">${escapeHtml(item.name)} / ${escapeHtml(item.username)}</div>
+              <div class="item-sub">지점: ${escapeHtml(item.branch)} | 생년월일: ${escapeHtml(item.birth)} | 핸드폰: ${escapeHtml(item.phone)}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-secondary mini" onclick="editMember(${index})">수정</button>
+              <button class="btn-secondary mini" onclick="resetMemberPassword(${index})">비밀번호 재설정</button>
+              <button class="btn-danger mini" onclick="deleteMember(${index})">삭제</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<div class="item-sub">등록된 회원 없음</div>`;
+    }
+
     function renderAll() {
       renderSopList();
       renderEduList();
       renderTestList();
+      renderMemberList();
     }
 
     function escapeHtml(value = "") {
