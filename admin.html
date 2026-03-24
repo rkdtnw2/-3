@@ -211,6 +211,7 @@
       gap:12px;
       align-items:flex-start;
       margin-bottom:10px;
+      flex-wrap:wrap;
     }
 
     .item-title{
@@ -361,6 +362,73 @@
       color:#fff;
     }
 
+    .map-editor{
+      display:grid;
+      gap:12px;
+      margin-top:12px;
+    }
+
+    .map-row{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .map-row-head{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+
+    .map-sub-list{
+      display:grid;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .result-summary{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:8px;
+    }
+
+    .summary-chip{
+      display:inline-flex;
+      align-items:center;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      color:#fff;
+    }
+
+    .detail-box{
+      margin-top:12px;
+      padding:12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
+      display:none;
+    }
+
+    .detail-item{
+      padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      color:#dfe9ff;
+      font-size:.92rem;
+      line-height:1.6;
+    }
+
+    .detail-item:last-child{border-bottom:none}
+
     @media (max-width:960px){
       .grid{grid-template-columns:1fr}
       .sidebar{position:relative;top:auto}
@@ -385,7 +453,7 @@
     <div class="top">
       <div>
         <div class="title">유림 텔레콤 관리자 페이지</div>
-        <div class="sub">콘텐츠 / 회원 / 비밀번호 재설정 관리</div>
+        <div class="sub">콘텐츠 / 회원 / 테스트 결과 관리</div>
       </div>
 
       <div class="actions">
@@ -402,6 +470,7 @@
           <button data-tab="sop">SOP 관리</button>
           <button data-tab="edu">상품자료 관리</button>
           <button data-tab="test">테스트 관리</button>
+          <button data-tab="results">테스트 결과</button>
           <button data-tab="members">회원 관리</button>
         </div>
         <div class="status" id="saveStatus">저장 전</div>
@@ -458,7 +527,17 @@
 
         <div class="tab-content hidden" id="tab-sop">
           <h2 class="section-title">SOP 관리</h2>
-          <div class="section-desc">이미지는 파일 선택으로 첨부하고, 동영상은 URL로 입력합니다.</div>
+          <div class="section-desc">중분류 / 소분류를 직접 수정할 수 있고, 이미지는 파일 선택으로 첨부합니다.</div>
+
+          <div class="card">
+            <h3 style="margin-top:0;">중분류 / 소분류 관리</h3>
+            <div class="section-desc" style="margin-bottom:12px;">여기서 수정한 값이 메인 페이지 필터 버튼과 SOP 저장 폼에 바로 반영됩니다.</div>
+            <div class="map-editor" id="categoryMapEditor"></div>
+            <div class="submit-row">
+              <button class="btn-secondary" type="button" onclick="addMidCategoryRow()">중분류 추가</button>
+              <button class="btn-primary" type="button" onclick="applyCategoryMapFromEditor()">분류 저장</button>
+            </div>
+          </div>
 
           <div class="card">
             <div class="row-3">
@@ -657,6 +736,19 @@
           <div class="list" id="testList"></div>
         </div>
 
+        <div class="tab-content hidden" id="tab-results">
+          <h2 class="section-title">테스트 결과</h2>
+          <div class="section-desc">제출된 테스트 기록을 확인하고, 상세보기로 틀린 문제 / 선택 / 정답 / 해설을 볼 수 있습니다.</div>
+
+          <div class="card">
+            <div class="submit-row">
+              <button class="btn-danger" onclick="clearAllTestResults()">결과 기록 전체삭제</button>
+            </div>
+          </div>
+
+          <div class="list" id="testResultList"></div>
+        </div>
+
         <div class="tab-content hidden" id="tab-members">
           <h2 class="section-title">회원 관리</h2>
           <div class="section-desc">회원 조회 / 수정 / 삭제 / 비밀번호 재설정을 할 수 있습니다.</div>
@@ -708,7 +800,7 @@
     const MAX_SOP_IMAGES = 10;
     const MAX_EDU_IMAGES = 5;
 
-    const SOP_CATEGORY_MAP = {
+    const DEFAULT_CATEGORY_MAP = {
       "기본기": ["내방고객응대표준SOP", "오딧"],
       "응대": ["통신용어", "필름교체"],
       "UCRM": ["내방고객", "외부활동"],
@@ -729,6 +821,8 @@
       sop: [],
       edu: [],
       test: [],
+      testResults: [],
+      sopCategoryMap: JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP)),
       members: []
     };
 
@@ -754,6 +848,14 @@
         .replaceAll("'", "&#39;");
     }
 
+    function getCategoryMap() {
+      const map = state.sopCategoryMap;
+      if (!map || !Object.keys(map).length) {
+        state.sopCategoryMap = JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+      }
+      return state.sopCategoryMap;
+    }
+
     function getLegacyImages(item = {}) {
       const legacy = [
         item.image1, item.image2, item.image3, item.image4, item.image5,
@@ -771,7 +873,9 @@
       } catch (e) {
         state = structuredClone(defaultData);
       }
+      if (!Array.isArray(state.testResults)) state.testResults = [];
       fillHomeFields();
+      renderCategoryMapEditor();
       initSopCategorySelects();
       renderAll();
       resetSopForm();
@@ -790,6 +894,7 @@
       state = structuredClone(defaultData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       fillHomeFields();
+      renderCategoryMapEditor();
       initSopCategorySelects();
       renderAll();
       resetSopForm();
@@ -821,21 +926,136 @@
       qs("homeShortcut3Desc").value = state.home.shortcut3Desc || "";
     }
 
+    function renderCategoryMapEditor() {
+      const map = getCategoryMap();
+      const area = qs("categoryMapEditor");
+      const entries = Object.entries(map);
+
+      area.innerHTML = entries.map(([mid, subs], index) => `
+        <div class="map-row" data-map-row="${index}">
+          <div class="map-row-head">
+            <input class="map-mid-input" value="${escapeHtml(mid)}" placeholder="중분류 이름" />
+            <div class="item-actions">
+              <button type="button" class="btn-secondary mini" onclick="addSubCategoryInput(${index})">소분류 추가</button>
+              <button type="button" class="btn-danger mini" onclick="removeMidCategoryRow(${index})">중분류 삭제</button>
+            </div>
+          </div>
+          <div class="map-sub-list" id="map-sub-list-${index}">
+            ${(subs || []).map((sub, subIndex) => `
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input class="map-sub-input" value="${escapeHtml(sub)}" placeholder="소분류 이름" />
+                <button type="button" class="btn-danger mini" onclick="removeSubCategoryInput(${index}, ${subIndex})">삭제</button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function addMidCategoryRow() {
+      const map = getCategoryMap();
+      let newKey = "새중분류";
+      let suffix = 1;
+      while (map[newKey]) {
+        newKey = `새중분류${suffix++}`;
+      }
+      map[newKey] = ["새소분류"];
+      renderCategoryMapEditor();
+      initSopCategorySelects();
+      setStatus("중분류 행이 추가됐어", true);
+    }
+
+    function removeMidCategoryRow(index) {
+      const keys = Object.keys(getCategoryMap());
+      const key = keys[index];
+      if (!key) return;
+      delete state.sopCategoryMap[key];
+      renderCategoryMapEditor();
+      initSopCategorySelects();
+    }
+
+    function addSubCategoryInput(index) {
+      const key = Object.keys(getCategoryMap())[index];
+      if (!key) return;
+      state.sopCategoryMap[key].push("새소분류");
+      renderCategoryMapEditor();
+      initSopCategorySelects();
+    }
+
+    function removeSubCategoryInput(index, subIndex) {
+      const key = Object.keys(getCategoryMap())[index];
+      if (!key) return;
+      state.sopCategoryMap[key].splice(subIndex, 1);
+      renderCategoryMapEditor();
+      initSopCategorySelects();
+    }
+
+    function applyCategoryMapFromEditor() {
+      const rows = Array.from(document.querySelectorAll("[data-map-row]"));
+      const nextMap = {};
+
+      rows.forEach(row => {
+        const midInput = row.querySelector(".map-mid-input");
+        const subInputs = Array.from(row.querySelectorAll(".map-sub-input"));
+        const mid = (midInput?.value || "").trim();
+        const subs = subInputs.map(v => v.value.trim()).filter(Boolean);
+
+        if (!mid || !subs.length) return;
+        nextMap[mid] = subs;
+      });
+
+      if (!Object.keys(nextMap).length) {
+        setStatus("중분류와 소분류를 최소 1개 이상 남겨줘", false);
+        return;
+      }
+
+      state.sopCategoryMap = nextMap;
+      normalizeSopItemsByCategoryMap();
+      renderCategoryMapEditor();
+      initSopCategorySelects();
+      renderSopList();
+      saveAll();
+    }
+
     function initSopCategorySelects() {
+      const map = getCategoryMap();
       const midSelect = qs("sopMidCategory");
-      midSelect.innerHTML = Object.keys(SOP_CATEGORY_MAP).map(mid => `<option value="${mid}">${mid}</option>`).join("");
-      populateSopSubCategorySelect(midSelect.value || "기본기");
+      const mids = Object.keys(map);
+      midSelect.innerHTML = mids.map(mid => `<option value="${mid}">${mid}</option>`).join("");
+      populateSopSubCategorySelect(midSelect.value || mids[0] || "");
     }
 
     function populateSopSubCategorySelect(mid, selectedSub = "") {
       const subSelect = qs("sopTopicTitle");
-      const list = SOP_CATEGORY_MAP[mid] || [];
+      const list = getCategoryMap()[mid] || [];
       subSelect.innerHTML = list.map(sub => `<option value="${sub}">${sub}</option>`).join("");
       if (selectedSub && list.includes(selectedSub)) {
         subSelect.value = selectedSub;
       } else if (list.length) {
         subSelect.value = list[0];
       }
+    }
+
+    function findMidCategoryByTopic(topicTitle = "") {
+      const topic = String(topicTitle).trim();
+      const map = getCategoryMap();
+      for (const [mid, subs] of Object.entries(map)) {
+        if ((subs || []).includes(topic)) return mid;
+      }
+      return Object.keys(map)[0] || "";
+    }
+
+    function normalizeSopItemsByCategoryMap() {
+      const map = getCategoryMap();
+      const firstMid = Object.keys(map)[0] || "";
+      const firstSub = firstMid ? (map[firstMid][0] || "") : "";
+
+      state.sop = (state.sop || []).map(item => {
+        const mid = item.midCategory && map[item.midCategory] ? item.midCategory : findMidCategoryByTopic(item.topicTitle) || firstMid;
+        const validSubs = map[mid] || [];
+        const topicTitle = validSubs.includes(item.topicTitle) ? item.topicTitle : (validSubs[0] || firstSub);
+        return { ...item, midCategory: mid, topicTitle };
+      });
     }
 
     function readFilesAsDataUrls(fileList) {
@@ -983,7 +1203,7 @@
       const item = state.sop[index];
       editIndex.sop = index;
       qs("sopChapter").value = item.chapter || "";
-      qs("sopMidCategory").value = item.midCategory || "기본기";
+      qs("sopMidCategory").value = item.midCategory || Object.keys(getCategoryMap())[0] || "";
       populateSopSubCategorySelect(qs("sopMidCategory").value, item.topicTitle || "");
       qs("sopSummary").value = item.topicSummary || "";
       qs("sopDetail").value = item.detailText || "";
@@ -1017,8 +1237,9 @@
       ["sopChapter","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
         if (qs(id)) qs(id).value = "";
       });
-      qs("sopMidCategory").value = "기본기";
-      populateSopSubCategorySelect("기본기");
+      const firstMid = Object.keys(getCategoryMap())[0] || "";
+      qs("sopMidCategory").value = firstMid;
+      populateSopSubCategorySelect(firstMid);
       renderSopPreview();
     }
 
@@ -1207,6 +1428,71 @@
       `).join("") || `<div class="item-sub">등록된 테스트 없음</div>`;
     }
 
+    function renderTestResults() {
+      const list = qs("testResultList");
+      const results = Array.isArray(state.testResults) ? state.testResults : [];
+
+      if (!results.length) {
+        list.innerHTML = `<div class="item-sub">등록된 테스트 결과 없음</div>`;
+        return;
+      }
+
+      list.innerHTML = results.map((item, index) => `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-title">${escapeHtml(item.name || "이름 없음")}</div>
+              <div class="item-sub">${formatDate(item.submittedAt)}${item.branch ? ` / ${escapeHtml(item.branch)}` : ""}</div>
+              <div class="result-summary">
+                <span class="summary-chip">문항 ${item.total || 0}</span>
+                <span class="summary-chip">정답 ${item.correct || 0}</span>
+                <span class="summary-chip">오답 ${(item.wrongList || []).length}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-secondary mini" onclick="toggleResultDetail(${index})">상세보기</button>
+              <button class="btn-danger mini" onclick="deleteTestResult(${index})">삭제</button>
+            </div>
+          </div>
+
+          <div class="detail-box" id="result-detail-${index}">
+            ${(item.wrongList || []).length ? item.wrongList.map(wrong => `
+              <div class="detail-item">
+                <strong>${wrong.no}번. ${escapeHtml(wrong.title || "")}</strong><br>
+                선택: ${escapeHtml(wrong.picked || "미응답")} / 정답: ${escapeHtml(wrong.answer || "")}<br>
+                해설: ${escapeHtml(wrong.explanation || "해설 없음")}
+              </div>
+            `).join("") : `<div class="detail-item">틀린 문제가 없습니다.</div>`}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return iso;
+      return date.toLocaleString("ko-KR");
+    }
+
+    function toggleResultDetail(index) {
+      const box = qs(`result-detail-${index}`);
+      if (!box) return;
+      box.style.display = box.style.display === "block" ? "none" : "block";
+    }
+
+    function deleteTestResult(index) {
+      if (!confirm("이 결과를 삭제할까?")) return;
+      state.testResults.splice(index, 1);
+      saveAll();
+    }
+
+    function clearAllTestResults() {
+      if (!confirm("테스트 결과 전체를 삭제할까?")) return;
+      state.testResults = [];
+      saveAll();
+    }
+
     function addOrUpdateMember() {
       const item = {
         id: editIndex.member >= 0 ? state.members[editIndex.member].id : (crypto.randomUUID ? crypto.randomUUID() : "m_" + Date.now()),
@@ -1294,6 +1580,7 @@
       renderSopList();
       renderEduList();
       renderTestList();
+      renderTestResults();
       renderMemberList();
     }
 
