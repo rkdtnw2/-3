@@ -467,12 +467,12 @@
                 <input id="sopChapter" />
               </div>
               <div class="field">
-                <label>주제명</label>
-                <input id="sopTopicTitle" />
+                <label>중분류</label>
+                <select id="sopMidCategory"></select>
               </div>
               <div class="field">
-                <label>순서</label>
-                <input id="sopOrder" type="number" />
+                <label>소분류</label>
+                <select id="sopTopicTitle"></select>
               </div>
             </div>
 
@@ -496,6 +496,14 @@
                 <label>동영상 URL</label>
                 <input id="sopVideo" placeholder="youtube / mp4 링크" />
               </div>
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label>순서</label>
+                <input id="sopOrder" type="number" />
+              </div>
+              <div></div>
             </div>
 
             <div class="upload-guide">SOP 이미지는 최대 10장까지 첨부 가능
@@ -700,6 +708,13 @@
     const MAX_SOP_IMAGES = 10;
     const MAX_EDU_IMAGES = 5;
 
+    const SOP_CATEGORY_MAP = {
+      "기본기": ["내방고객응대표준SOP", "오딧"],
+      "응대": ["통신용어", "필름교체"],
+      "UCRM": ["내방고객", "외부활동"],
+      "맞춤제안": ["선택약정", "요금제변경"]
+    };
+
     const defaultData = {
       home: {
         badge: "✨ 실전형 신입 교육 포털",
@@ -740,7 +755,10 @@
     }
 
     function getLegacyImages(item = {}) {
-      const legacy = [item.image1, item.image2, item.image3].filter(Boolean);
+      const legacy = [
+        item.image1, item.image2, item.image3, item.image4, item.image5,
+        item.image6, item.image7, item.image8, item.image9, item.image10
+      ].filter(Boolean);
       const fromArray = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
       return fromArray.length ? fromArray : legacy;
     }
@@ -754,6 +772,7 @@
         state = structuredClone(defaultData);
       }
       fillHomeFields();
+      initSopCategorySelects();
       renderAll();
       resetSopForm();
       resetEduForm();
@@ -771,6 +790,7 @@
       state = structuredClone(defaultData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       fillHomeFields();
+      initSopCategorySelects();
       renderAll();
       resetSopForm();
       resetEduForm();
@@ -799,6 +819,23 @@
       qs("homeShortcut2Desc").value = state.home.shortcut2Desc || "";
       qs("homeShortcut3Title").value = state.home.shortcut3Title || "";
       qs("homeShortcut3Desc").value = state.home.shortcut3Desc || "";
+    }
+
+    function initSopCategorySelects() {
+      const midSelect = qs("sopMidCategory");
+      midSelect.innerHTML = Object.keys(SOP_CATEGORY_MAP).map(mid => `<option value="${mid}">${mid}</option>`).join("");
+      populateSopSubCategorySelect(midSelect.value || "기본기");
+    }
+
+    function populateSopSubCategorySelect(mid, selectedSub = "") {
+      const subSelect = qs("sopTopicTitle");
+      const list = SOP_CATEGORY_MAP[mid] || [];
+      subSelect.innerHTML = list.map(sub => `<option value="${sub}">${sub}</option>`).join("");
+      if (selectedSub && list.includes(selectedSub)) {
+        subSelect.value = selectedSub;
+      } else if (list.length) {
+        subSelect.value = list[0];
+      }
     }
 
     function readFilesAsDataUrls(fileList) {
@@ -915,9 +952,13 @@
     }
 
     function addOrUpdateSop() {
+      const midCategory = qs("sopMidCategory").value.trim();
+      const topicTitle = qs("sopTopicTitle").value.trim();
+
       const item = {
         chapter: qs("sopChapter").value.trim(),
-        topicTitle: qs("sopTopicTitle").value.trim(),
+        midCategory,
+        topicTitle,
         topicSummary: qs("sopSummary").value.trim(),
         detailText: qs("sopDetail").value.trim(),
         order: Number(qs("sopOrder").value || 0),
@@ -926,8 +967,8 @@
         images: currentSopImages.map(v => ({ ...v })).slice(0, MAX_SOP_IMAGES)
       };
 
-      if (!item.chapter || !item.topicTitle) {
-        setStatus("SOP는 챕터와 주제명이 필요해", false);
+      if (!item.chapter || !midCategory || !topicTitle) {
+        setStatus("SOP는 챕터, 중분류, 소분류가 필요해", false);
         return;
       }
 
@@ -942,7 +983,8 @@
       const item = state.sop[index];
       editIndex.sop = index;
       qs("sopChapter").value = item.chapter || "";
-      qs("sopTopicTitle").value = item.topicTitle || "";
+      qs("sopMidCategory").value = item.midCategory || "기본기";
+      populateSopSubCategorySelect(qs("sopMidCategory").value, item.topicTitle || "");
       qs("sopSummary").value = item.topicSummary || "";
       qs("sopDetail").value = item.detailText || "";
       qs("sopOrder").value = item.order || "";
@@ -972,9 +1014,11 @@
     function resetSopForm() {
       editIndex.sop = -1;
       currentSopImages = [];
-      ["sopChapter","sopTopicTitle","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
+      ["sopChapter","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
         if (qs(id)) qs(id).value = "";
       });
+      qs("sopMidCategory").value = "기본기";
+      populateSopSubCategorySelect("기본기");
       renderSopPreview();
     }
 
@@ -987,7 +1031,7 @@
             <div class="item-top">
               <div>
                 <div class="item-title">${escapeHtml(item.topicTitle)}</div>
-                <div class="item-sub">${escapeHtml(item.chapter)} / 순서 ${item.order || 0} / 이미지 ${imageCount}장</div>
+                <div class="item-sub">${escapeHtml(item.chapter)} / ${escapeHtml(item.midCategory || "")} / 순서 ${item.order || 0} / 이미지 ${imageCount}장</div>
               </div>
               <div class="item-actions">
                 <button class="btn-secondary mini" onclick="editSop(${index})">수정</button>
@@ -1290,6 +1334,10 @@
         document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
         qs("tab-" + tab).classList.remove("hidden");
       });
+    });
+
+    qs("sopMidCategory").addEventListener("change", (e) => {
+      populateSopSubCategorySelect(e.target.value);
     });
 
     qs("sopImageFiles").addEventListener("change", handleSopImageSelect);
