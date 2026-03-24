@@ -533,7 +533,7 @@
             <h3 style="margin-top:0;">중분류 / 소분류 직접 수정</h3>
             <div class="section-desc" style="margin-bottom:12px;">여기서 추가/삭제/수정한 값이 메인 페이지 필터 버튼과 SOP 저장 폼에 반영됩니다.</div>
             <div class="map-editor" id="categoryMapEditor"></div>
-            <div class="submit-row">
+            <div class="item-actions">
               <button class="btn-secondary" type="button" onclick="addMidCategoryRow()">중분류 추가</button>
               <button class="btn-primary" type="button" onclick="applyCategoryMapFromEditor()">분류 저장</button>
             </div>
@@ -743,7 +743,7 @@
           <div class="section-desc">제출된 기록을 확인하고, 상세보기로 틀린 문제 / 선택 / 정답 / 해설을 볼 수 있습니다.</div>
 
           <div class="card">
-            <div class="submit-row">
+            <div class="item-actions">
               <button class="btn-danger" onclick="clearAllTestResults()">결과 기록 전체삭제</button>
             </div>
           </div>
@@ -809,6 +809,17 @@
       "맞춤제안": ["선택약정", "요금제변경"]
     };
 
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function createId(prefix) {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
     const defaultData = {
       home: {
         badge: "✨ 실전형 신입 교육 포털",
@@ -824,11 +835,11 @@
       edu: [],
       test: [],
       testResults: [],
-      sopCategoryMap: JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP)),
+      sopCategoryMap: deepClone(DEFAULT_CATEGORY_MAP),
       members: []
     };
 
-    let state = structuredClone(defaultData);
+    let state = deepClone(defaultData);
     let editIndex = { sop:-1, edu:-1, test:-1, member:-1 };
     let currentSopImages = [];
     let currentEduImages = [];
@@ -843,17 +854,17 @@
 
     function escapeHtml(value = "") {
       return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function getCategoryMap() {
       const map = state.sopCategoryMap;
       if (!map || !Object.keys(map).length) {
-        state.sopCategoryMap = JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+        state.sopCategoryMap = deepClone(DEFAULT_CATEGORY_MAP);
       }
       return state.sopCategoryMap;
     }
@@ -870,12 +881,20 @@
     function loadAll() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) state = JSON.parse(raw);
-        else localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (raw) {
+          state = Object.assign(deepClone(defaultData), JSON.parse(raw) || {});
+        } else {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
       } catch (e) {
-        state = structuredClone(defaultData);
+        state = deepClone(defaultData);
       }
+
       if (!Array.isArray(state.testResults)) state.testResults = [];
+      if (!state.sopCategoryMap || !Object.keys(state.sopCategoryMap).length) {
+        state.sopCategoryMap = deepClone(DEFAULT_CATEGORY_MAP);
+      }
+
       fillHomeFields();
       renderCategoryMapEditor();
       initSopCategoryInputs();
@@ -893,7 +912,7 @@
 
     function resetAllData() {
       if (!confirm("모든 데이터를 초기화할까?")) return;
-      state = structuredClone(defaultData);
+      state = deepClone(defaultData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       fillHomeFields();
       renderCategoryMapEditor();
@@ -942,7 +961,7 @@
               <button type="button" class="btn-danger mini" onclick="removeMidCategoryRow(${index})">중분류 삭제</button>
             </div>
           </div>
-          <div class="map-sub-list" id="map-sub-list-${index}">
+          <div class="map-sub-list">
             ${(subs || []).map((sub, subIndex) => `
               <div style="display:flex; gap:8px; align-items:center;">
                 <input class="map-sub-input" value="${escapeHtml(sub)}" placeholder="소분류 이름" />
@@ -958,13 +977,11 @@
       const map = getCategoryMap();
       let newKey = "새중분류";
       let suffix = 1;
-      while (map[newKey]) {
-        newKey = `새중분류${suffix++}`;
-      }
+      while (map[newKey]) newKey = `새중분류${suffix++}`;
       map[newKey] = ["새소분류"];
       renderCategoryMapEditor();
       initSopCategoryInputs();
-      setStatus("중분류 행이 추가됐어", true);
+      setStatus("중분류가 추가됐어", true);
     }
 
     function removeMidCategoryRow(index) {
@@ -999,8 +1016,8 @@
       rows.forEach(row => {
         const midInput = row.querySelector(".map-mid-input");
         const subInputs = Array.from(row.querySelectorAll(".map-sub-input"));
-        const mid = (midInput?.value || "").trim();
-        const subs = subInputs.map(v => v.value.trim()).filter(Boolean);
+        const mid = (midInput && midInput.value ? midInput.value : "").trim();
+        const subs = subInputs.map(v => (v.value || "").trim()).filter(Boolean);
 
         if (!mid || !subs.length) return;
         nextMap[mid] = subs;
@@ -1044,61 +1061,11 @@
         const typedMid = String(item.midCategory || "").trim();
         const typedSub = String(item.topicTitle || "").trim();
         const inferredMid = typedMid || findMidCategoryByTopic(typedSub);
-        return {
-          ...item,
+        return Object.assign({}, item, {
           midCategory: inferredMid,
           topicTitle: typedSub
-        };
+        });
       });
-    }
-
-    async function compressImageFile(file, maxWidth = 1400, quality = 0.82) {
-      if (!file.type.startsWith("image/")) {
-        throw new Error("이미지 파일만 첨부할 수 있어.");
-      }
-
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const img = new Image();
-          img.onload = () => {
-            let { width, height } = img;
-            if (width > maxWidth || height > maxWidth) {
-              if (width > height) {
-                height = Math.round(height * (maxWidth / width));
-                width = maxWidth;
-              } else {
-                width = Math.round(width * (maxWidth / height));
-                height = maxWidth;
-              }
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const outputType = "image/jpeg";
-            const dataUrl = canvas.toDataURL(outputType, quality);
-
-            resolve({
-              name: file.name,
-              size: Math.round((dataUrl.length * 3) / 4),
-              src: dataUrl
-            });
-          };
-          img.onerror = () => reject(new Error(file.name + " 이미지를 읽지 못했어."));
-          img.src = reader.result;
-        };
-        reader.onerror = () => reject(new Error(file.name + " 파일을 읽지 못했어."));
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function readFilesAsCompressedDataUrls(fileList) {
-      const files = Array.from(fileList || []);
-      return Promise.all(files.map(file => compressImageFile(file)));
     }
 
     function formatBytes(bytes = 0) {
@@ -1150,6 +1117,61 @@
     function removeEduImage(index) {
       currentEduImages.splice(index, 1);
       renderEduPreview();
+    }
+
+    function compressImageFile(file, maxWidth = 1400, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        if (!file.type.startsWith("image/")) {
+          reject(new Error("이미지 파일만 첨부할 수 있어."));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const img = new Image();
+          img.onload = function() {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth || height > maxWidth) {
+              if (width > height) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+              } else {
+                width = Math.round(width * (maxWidth / height));
+                height = maxWidth;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+            resolve({
+              name: file.name,
+              size: Math.round((dataUrl.length * 3) / 4),
+              src: dataUrl
+            });
+          };
+          img.onerror = function() {
+            reject(new Error(file.name + " 이미지를 읽지 못했어."));
+          };
+          img.src = ev.target.result;
+        };
+        reader.onerror = function() {
+          reject(new Error(file.name + " 파일을 읽지 못했어."));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function readFilesAsCompressedDataUrls(fileList) {
+      const files = Array.from(fileList || []);
+      return Promise.all(files.map(file => compressImageFile(file)));
     }
 
     async function handleSopImageSelect(e) {
@@ -1207,7 +1229,7 @@
         order: Number(qs("sopOrder").value || 0),
         tags: qs("sopTags").value.trim(),
         video: qs("sopVideo").value.trim(),
-        images: currentSopImages.map(v => ({ ...v })).slice(0, MAX_SOP_IMAGES)
+        images: currentSopImages.map(v => Object.assign({}, v)).slice(0, MAX_SOP_IMAGES)
       };
 
       if (!item.chapter || !midCategory || !topicTitle) {
@@ -1297,7 +1319,7 @@
         point3: qs("eduPoint3").value.trim(),
         point4: qs("eduPoint4").value.trim(),
         video: qs("eduVideo").value.trim(),
-        images: currentEduImages.map(v => ({ ...v })).slice(0, MAX_EDU_IMAGES)
+        images: currentEduImages.map(v => Object.assign({}, v)).slice(0, MAX_EDU_IMAGES)
       };
 
       if (!item.category || !item.title) {
@@ -1324,9 +1346,7 @@
       qs("eduPoint4").value = item.point4 || "";
       qs("eduVideo").value = item.video || "";
 
-      const sourceImages = Array.isArray(item.images) && item.images.length
-        ? item.images
-        : [item.image1].filter(Boolean);
+      const sourceImages = Array.isArray(item.images) && item.images.length ? item.images : [item.image1].filter(Boolean);
 
       currentEduImages = sourceImages.map((src, idx) => {
         if (typeof src === "string") {
@@ -1517,7 +1537,7 @@
 
     function addOrUpdateMember() {
       const item = {
-        id: editIndex.member >= 0 ? state.members[editIndex.member].id : (crypto.randomUUID ? crypto.randomUUID() : "m_" + Date.now()),
+        id: editIndex.member >= 0 ? state.members[editIndex.member].id : createId("member"),
         branch: qs("memberBranch").value.trim(),
         name: qs("memberName").value.trim(),
         birth: qs("memberBirth").value.trim(),
@@ -1630,7 +1650,7 @@
         qs("adminWrap").style.display = "none";
       }
 
-      qs("adminPasswordInput").addEventListener("keydown", (e) => {
+      qs("adminPasswordInput").addEventListener("keydown", e => {
         if (e.key === "Enter") checkAdminPassword();
       });
     }
@@ -1645,7 +1665,7 @@
       });
     });
 
-    qs("sopMidCategory").addEventListener("input", (e) => {
+    qs("sopMidCategory").addEventListener("input", e => {
       updateSubCategoryDatalist(e.target.value.trim());
     });
 
