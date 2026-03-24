@@ -134,6 +134,8 @@
     .section-desc{
       color:var(--muted);
       margin-bottom:18px;
+      line-height:1.6;
+      white-space:pre-line;
     }
 
     .card{
@@ -179,6 +181,10 @@
       padding:12px 14px;
       font:inherit;
       outline:none;
+    }
+
+    input[type="file"]{
+      padding:10px 12px;
     }
 
     textarea{
@@ -284,6 +290,77 @@
       min-height:20px;
     }
 
+    .upload-guide{
+      padding:12px 14px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:.9rem;
+      line-height:1.6;
+      margin-bottom:14px;
+      white-space:pre-line;
+    }
+
+    .preview-wrap{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+
+    .preview-item{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      overflow:hidden;
+      padding:10px;
+    }
+
+    .preview-item img{
+      width:100%;
+      height:120px;
+      object-fit:contain;
+      background:#0a1020;
+      border-radius:12px;
+      display:block;
+      margin-bottom:8px;
+    }
+
+    .preview-meta{
+      font-size:.82rem;
+      color:var(--muted);
+      line-height:1.5;
+      margin-bottom:8px;
+      word-break:break-all;
+    }
+
+    .preview-actions{
+      display:flex;
+      gap:8px;
+    }
+
+    .preview-actions button{
+      flex:1;
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:.82rem;
+    }
+
+    .count-chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:84px;
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:.86rem;
+      font-weight:800;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:#fff;
+    }
+
     @media (max-width:960px){
       .grid{grid-template-columns:1fr}
       .sidebar{position:relative;top:auto}
@@ -381,7 +458,7 @@
 
         <div class="tab-content hidden" id="tab-sop">
           <h2 class="section-title">SOP 관리</h2>
-          <div class="section-desc">이미지, 동영상, 태그까지 직접 입력합니다.</div>
+          <div class="section-desc">이미지는 파일 선택으로 첨부하고, 동영상은 URL로 입력합니다.</div>
 
           <div class="card">
             <div class="row-3">
@@ -421,20 +498,21 @@
               </div>
             </div>
 
-            <div class="row-3">
+            <div class="upload-guide">SOP 이미지는 최대 10장까지 첨부 가능
+파일 선택 후 아래 미리보기에서 삭제도 가능</div>
+
+            <div class="row">
               <div class="field">
-                <label>이미지 URL 1</label>
-                <input id="sopImage1" />
+                <label>이미지 첨부</label>
+                <input id="sopImageFiles" type="file" accept="image/*" multiple />
               </div>
-              <div class="field">
-                <label>이미지 URL 2</label>
-                <input id="sopImage2" />
-              </div>
-              <div class="field">
-                <label>이미지 URL 3</label>
-                <input id="sopImage3" />
+              <div class="field" style="justify-content:flex-end;">
+                <label>첨부 개수</label>
+                <div class="count-chip" id="sopImageCount">0 / 10</div>
               </div>
             </div>
+
+            <div class="preview-wrap" id="sopPreview"></div>
 
             <button class="btn-primary" onclick="addOrUpdateSop()">SOP 저장</button>
           </div>
@@ -444,7 +522,7 @@
 
         <div class="tab-content hidden" id="tab-edu">
           <h2 class="section-title">상품자료 관리</h2>
-          <div class="section-desc">카테고리, 포인트, 이미지, 동영상을 입력합니다.</div>
+          <div class="section-desc">상품자료 이미지는 최대 5장 첨부, 동영상은 URL로 입력합니다.</div>
 
           <div class="card">
             <div class="row-3">
@@ -467,11 +545,24 @@
                 <label>설명</label>
                 <textarea id="eduDesc"></textarea>
               </div>
-              <div class="field">
-                <label>이미지 URL</label>
-                <input id="eduImage1" />
+              <div class="field" style="justify-content:flex-end;">
+                <label>첨부 개수</label>
+                <div class="count-chip" id="eduImageCount">0 / 5</div>
               </div>
             </div>
+
+            <div class="upload-guide">상품자료 이미지는 최대 5장까지 첨부 가능
+대표 이미지 포함해서 카드 안에 함께 노출됩니다.</div>
+
+            <div class="row">
+              <div class="field">
+                <label>이미지 첨부</label>
+                <input id="eduImageFiles" type="file" accept="image/*" multiple />
+              </div>
+              <div></div>
+            </div>
+
+            <div class="preview-wrap" id="eduPreview"></div>
 
             <div class="row">
               <div class="field">
@@ -606,6 +697,8 @@
     const STORAGE_KEY = "yurim_telecom_admin_data_v2";
     const ADMIN_PASSWORD = "0728";
     const SESSION_KEY = "yurim_admin_auth_v1";
+    const MAX_SOP_IMAGES = 10;
+    const MAX_EDU_IMAGES = 5;
 
     const defaultData = {
       home: {
@@ -626,6 +719,8 @@
 
     let state = structuredClone(defaultData);
     let editIndex = { sop:-1, edu:-1, test:-1, member:-1 };
+    let currentSopImages = [];
+    let currentEduImages = [];
 
     function qs(id){ return document.getElementById(id); }
 
@@ -633,6 +728,21 @@
       const el = qs("saveStatus");
       el.textContent = text;
       el.className = "status " + (ok ? "ok" : "danger");
+    }
+
+    function escapeHtml(value = "") {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function getLegacyImages(item = {}) {
+      const legacy = [item.image1, item.image2, item.image3].filter(Boolean);
+      const fromArray = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
+      return fromArray.length ? fromArray : legacy;
     }
 
     function loadAll() {
@@ -645,6 +755,8 @@
       }
       fillHomeFields();
       renderAll();
+      resetSopForm();
+      resetEduForm();
     }
 
     function saveAll() {
@@ -689,6 +801,119 @@
       qs("homeShortcut3Desc").value = state.home.shortcut3Desc || "";
     }
 
+    function readFilesAsDataUrls(fileList) {
+      const files = Array.from(fileList || []);
+      return Promise.all(files.map(file => {
+        return new Promise((resolve, reject) => {
+          if (!file.type.startsWith("image/")) {
+            reject(new Error("이미지 파일만 첨부할 수 있어."));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => resolve({
+            name: file.name,
+            size: file.size,
+            src: reader.result
+          });
+          reader.onerror = () => reject(new Error(file.name + " 파일을 읽지 못했어."));
+          reader.readAsDataURL(file);
+        });
+      }));
+    }
+
+    function formatBytes(bytes = 0) {
+      if (bytes < 1024) return bytes + "B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + "KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + "MB";
+    }
+
+    function updateCount(id, current, max) {
+      qs(id).textContent = `${current} / ${max}`;
+    }
+
+    function renderPreview(containerId, images, onRemoveName) {
+      const el = qs(containerId);
+      if (!images.length) {
+        el.innerHTML = "";
+        return;
+      }
+
+      el.innerHTML = images.map((img, index) => `
+        <div class="preview-item">
+          <img src="${img.src}" alt="preview-${index}">
+          <div class="preview-meta">
+            ${escapeHtml(img.name || `이미지 ${index + 1}`)}<br>
+            ${escapeHtml(formatBytes(img.size || 0))}
+          </div>
+          <div class="preview-actions">
+            <button class="btn-danger" type="button" onclick="${onRemoveName}(${index})">삭제</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderSopPreview() {
+      updateCount("sopImageCount", currentSopImages.length, MAX_SOP_IMAGES);
+      renderPreview("sopPreview", currentSopImages, "removeSopImage");
+    }
+
+    function renderEduPreview() {
+      updateCount("eduImageCount", currentEduImages.length, MAX_EDU_IMAGES);
+      renderPreview("eduPreview", currentEduImages, "removeEduImage");
+    }
+
+    function removeSopImage(index) {
+      currentSopImages.splice(index, 1);
+      renderSopPreview();
+    }
+
+    function removeEduImage(index) {
+      currentEduImages.splice(index, 1);
+      renderEduPreview();
+    }
+
+    async function handleSopImageSelect(e) {
+      try {
+        const picked = await readFilesAsDataUrls(e.target.files);
+        const remain = MAX_SOP_IMAGES - currentSopImages.length;
+        if (remain <= 0) {
+          alert(`SOP 이미지는 최대 ${MAX_SOP_IMAGES}장까지 가능해.`);
+          e.target.value = "";
+          return;
+        }
+        currentSopImages = currentSopImages.concat(picked.slice(0, remain));
+        if (picked.length > remain) {
+          alert(`최대 ${MAX_SOP_IMAGES}장까지만 첨부돼. 초과된 이미지는 제외했어.`);
+        }
+        renderSopPreview();
+      } catch (err) {
+        alert(err.message || "이미지 첨부 중 오류가 발생했어.");
+      } finally {
+        e.target.value = "";
+      }
+    }
+
+    async function handleEduImageSelect(e) {
+      try {
+        const picked = await readFilesAsDataUrls(e.target.files);
+        const remain = MAX_EDU_IMAGES - currentEduImages.length;
+        if (remain <= 0) {
+          alert(`상품자료 이미지는 최대 ${MAX_EDU_IMAGES}장까지 가능해.`);
+          e.target.value = "";
+          return;
+        }
+        currentEduImages = currentEduImages.concat(picked.slice(0, remain));
+        if (picked.length > remain) {
+          alert(`최대 ${MAX_EDU_IMAGES}장까지만 첨부돼. 초과된 이미지는 제외했어.`);
+        }
+        renderEduPreview();
+      } catch (err) {
+        alert(err.message || "이미지 첨부 중 오류가 발생했어.");
+      } finally {
+        e.target.value = "";
+      }
+    }
+
     function addOrUpdateSop() {
       const item = {
         chapter: qs("sopChapter").value.trim(),
@@ -698,9 +923,7 @@
         order: Number(qs("sopOrder").value || 0),
         tags: qs("sopTags").value.trim(),
         video: qs("sopVideo").value.trim(),
-        image1: qs("sopImage1").value.trim(),
-        image2: qs("sopImage2").value.trim(),
-        image3: qs("sopImage3").value.trim()
+        images: currentSopImages.map(v => ({ ...v })).slice(0, MAX_SOP_IMAGES)
       };
 
       if (!item.chapter || !item.topicTitle) {
@@ -725,9 +948,17 @@
       qs("sopOrder").value = item.order || "";
       qs("sopTags").value = item.tags || "";
       qs("sopVideo").value = item.video || "";
-      qs("sopImage1").value = item.image1 || "";
-      qs("sopImage2").value = item.image2 || "";
-      qs("sopImage3").value = item.image3 || "";
+      currentSopImages = getLegacyImages(item).map((src, idx) => {
+        if (typeof src === "string") {
+          return { src, name: `기존이미지_${idx + 1}`, size: 0 };
+        }
+        return {
+          src: src.src || "",
+          name: src.name || `기존이미지_${idx + 1}`,
+          size: Number(src.size || 0)
+        };
+      }).filter(v => v.src).slice(0, MAX_SOP_IMAGES);
+      renderSopPreview();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -735,30 +966,38 @@
       if (!confirm("삭제할까?")) return;
       state.sop.splice(index, 1);
       saveAll();
+      if (editIndex.sop === index) resetSopForm();
     }
 
     function resetSopForm() {
       editIndex.sop = -1;
-      ["sopChapter","sopTopicTitle","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImage1","sopImage2","sopImage3"].forEach(id => qs(id).value = "");
+      currentSopImages = [];
+      ["sopChapter","sopTopicTitle","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
+        if (qs(id)) qs(id).value = "";
+      });
+      renderSopPreview();
     }
 
     function renderSopList() {
       const list = qs("sopList");
-      list.innerHTML = state.sop.map((item, index) => `
-        <div class="item">
-          <div class="item-top">
-            <div>
-              <div class="item-title">${escapeHtml(item.topicTitle)}</div>
-              <div class="item-sub">${escapeHtml(item.chapter)} / 순서 ${item.order || 0}</div>
+      list.innerHTML = state.sop.map((item, index) => {
+        const imageCount = getLegacyImages(item).length;
+        return `
+          <div class="item">
+            <div class="item-top">
+              <div>
+                <div class="item-title">${escapeHtml(item.topicTitle)}</div>
+                <div class="item-sub">${escapeHtml(item.chapter)} / 순서 ${item.order || 0} / 이미지 ${imageCount}장</div>
+              </div>
+              <div class="item-actions">
+                <button class="btn-secondary mini" onclick="editSop(${index})">수정</button>
+                <button class="btn-danger mini" onclick="deleteSop(${index})">삭제</button>
+              </div>
             </div>
-            <div class="item-actions">
-              <button class="btn-secondary mini" onclick="editSop(${index})">수정</button>
-              <button class="btn-danger mini" onclick="deleteSop(${index})">삭제</button>
-            </div>
+            <div class="item-sub">${escapeHtml(item.topicSummary || "")}</div>
           </div>
-          <div class="item-sub">${escapeHtml(item.topicSummary || "")}</div>
-        </div>
-      `).join("") || `<div class="item-sub">등록된 SOP 없음</div>`;
+        `;
+      }).join("") || `<div class="item-sub">등록된 SOP 없음</div>`;
     }
 
     function addOrUpdateEdu() {
@@ -770,8 +1009,8 @@
         point2: qs("eduPoint2").value.trim(),
         point3: qs("eduPoint3").value.trim(),
         point4: qs("eduPoint4").value.trim(),
-        image1: qs("eduImage1").value.trim(),
-        video: qs("eduVideo").value.trim()
+        video: qs("eduVideo").value.trim(),
+        images: currentEduImages.map(v => ({ ...v })).slice(0, MAX_EDU_IMAGES)
       };
 
       if (!item.category || !item.title) {
@@ -796,8 +1035,24 @@
       qs("eduPoint2").value = item.point2 || "";
       qs("eduPoint3").value = item.point3 || "";
       qs("eduPoint4").value = item.point4 || "";
-      qs("eduImage1").value = item.image1 || "";
       qs("eduVideo").value = item.video || "";
+
+      const sourceImages = Array.isArray(item.images) && item.images.length
+        ? item.images
+        : [item.image1].filter(Boolean);
+
+      currentEduImages = sourceImages.map((src, idx) => {
+        if (typeof src === "string") {
+          return { src, name: `기존이미지_${idx + 1}`, size: 0 };
+        }
+        return {
+          src: src.src || "",
+          name: src.name || `기존이미지_${idx + 1}`,
+          size: Number(src.size || 0)
+        };
+      }).filter(v => v.src).slice(0, MAX_EDU_IMAGES);
+
+      renderEduPreview();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -805,30 +1060,38 @@
       if (!confirm("삭제할까?")) return;
       state.edu.splice(index, 1);
       saveAll();
+      if (editIndex.edu === index) resetEduForm();
     }
 
     function resetEduForm() {
       editIndex.edu = -1;
-      ["eduCategory","eduTitle","eduDesc","eduPoint1","eduPoint2","eduPoint3","eduPoint4","eduImage1","eduVideo"].forEach(id => qs(id).value = "");
+      currentEduImages = [];
+      ["eduCategory","eduTitle","eduDesc","eduPoint1","eduPoint2","eduPoint3","eduPoint4","eduVideo","eduImageFiles"].forEach(id => {
+        if (qs(id)) qs(id).value = "";
+      });
+      renderEduPreview();
     }
 
     function renderEduList() {
       const list = qs("eduList");
-      list.innerHTML = state.edu.map((item, index) => `
-        <div class="item">
-          <div class="item-top">
-            <div>
-              <div class="item-title">${escapeHtml(item.title)}</div>
-              <div class="item-sub">${escapeHtml(item.category)}</div>
+      list.innerHTML = state.edu.map((item, index) => {
+        const imageCount = Array.isArray(item.images) ? item.images.length : (item.image1 ? 1 : 0);
+        return `
+          <div class="item">
+            <div class="item-top">
+              <div>
+                <div class="item-title">${escapeHtml(item.title)}</div>
+                <div class="item-sub">${escapeHtml(item.category)} / 이미지 ${imageCount}장</div>
+              </div>
+              <div class="item-actions">
+                <button class="btn-secondary mini" onclick="editEdu(${index})">수정</button>
+                <button class="btn-danger mini" onclick="deleteEdu(${index})">삭제</button>
+              </div>
             </div>
-            <div class="item-actions">
-              <button class="btn-secondary mini" onclick="editEdu(${index})">수정</button>
-              <button class="btn-danger mini" onclick="deleteEdu(${index})">삭제</button>
-            </div>
+            <div class="item-sub">${escapeHtml(item.description || "")}</div>
           </div>
-          <div class="item-sub">${escapeHtml(item.description || "")}</div>
-        </div>
-      `).join("") || `<div class="item-sub">등록된 상품자료 없음</div>`;
+        `;
+      }).join("") || `<div class="item-sub">등록된 상품자료 없음</div>`;
     }
 
     function addOrUpdateTest() {
@@ -990,15 +1253,6 @@
       renderMemberList();
     }
 
-    function escapeHtml(value = "") {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-    }
-
     function checkAdminPassword() {
       const value = qs("adminPasswordInput").value;
       const error = qs("lockError");
@@ -1037,6 +1291,9 @@
         qs("tab-" + tab).classList.remove("hidden");
       });
     });
+
+    qs("sopImageFiles").addEventListener("change", handleSopImageSelect);
+    qs("eduImageFiles").addEventListener("change", handleEduImageSelect);
 
     loadAll();
     initLock();
