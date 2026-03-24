@@ -527,11 +527,11 @@
 
         <div class="tab-content hidden" id="tab-sop">
           <h2 class="section-title">SOP 관리</h2>
-          <div class="section-desc">중분류 / 소분류를 직접 수정할 수 있고, 이미지는 파일 선택으로 첨부합니다.</div>
+          <div class="section-desc">중분류 / 소분류를 직접 글자로 관리하고, SOP 저장 폼에서도 직접 입력합니다. 사진은 업로드 시 자동 압축됩니다.</div>
 
           <div class="card">
-            <h3 style="margin-top:0;">중분류 / 소분류 관리</h3>
-            <div class="section-desc" style="margin-bottom:12px;">여기서 수정한 값이 메인 페이지 필터 버튼과 SOP 저장 폼에 바로 반영됩니다.</div>
+            <h3 style="margin-top:0;">중분류 / 소분류 직접 수정</h3>
+            <div class="section-desc" style="margin-bottom:12px;">여기서 추가/삭제/수정한 값이 메인 페이지 필터 버튼과 SOP 저장 폼에 반영됩니다.</div>
             <div class="map-editor" id="categoryMapEditor"></div>
             <div class="submit-row">
               <button class="btn-secondary" type="button" onclick="addMidCategoryRow()">중분류 추가</button>
@@ -547,11 +547,13 @@
               </div>
               <div class="field">
                 <label>중분류</label>
-                <select id="sopMidCategory"></select>
+                <input id="sopMidCategory" list="midCategoryList" placeholder="직접 입력" />
+                <datalist id="midCategoryList"></datalist>
               </div>
               <div class="field">
                 <label>소분류</label>
-                <select id="sopTopicTitle"></select>
+                <input id="sopTopicTitle" list="subCategoryList" placeholder="직접 입력" />
+                <datalist id="subCategoryList"></datalist>
               </div>
             </div>
 
@@ -586,7 +588,7 @@
             </div>
 
             <div class="upload-guide">SOP 이미지는 최대 10장까지 첨부 가능
-파일 선택 후 아래 미리보기에서 삭제도 가능</div>
+선택한 큰 사진은 자동 압축 후 저장돼서 모바일에서도 더 안정적으로 보이게 처리합니다.</div>
 
             <div class="row">
               <div class="field">
@@ -609,7 +611,7 @@
 
         <div class="tab-content hidden" id="tab-edu">
           <h2 class="section-title">상품자료 관리</h2>
-          <div class="section-desc">상품자료 이미지는 최대 5장 첨부, 동영상은 URL로 입력합니다.</div>
+          <div class="section-desc">상품자료 이미지는 최대 5장 첨부, 동영상은 URL로 입력합니다. 사진은 자동 압축됩니다.</div>
 
           <div class="card">
             <div class="row-3">
@@ -738,7 +740,7 @@
 
         <div class="tab-content hidden" id="tab-results">
           <h2 class="section-title">테스트 결과</h2>
-          <div class="section-desc">제출된 테스트 기록을 확인하고, 상세보기로 틀린 문제 / 선택 / 정답 / 해설을 볼 수 있습니다.</div>
+          <div class="section-desc">제출된 기록을 확인하고, 상세보기로 틀린 문제 / 선택 / 정답 / 해설을 볼 수 있습니다.</div>
 
           <div class="card">
             <div class="submit-row">
@@ -876,7 +878,7 @@
       if (!Array.isArray(state.testResults)) state.testResults = [];
       fillHomeFields();
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
       renderAll();
       resetSopForm();
       resetEduForm();
@@ -895,7 +897,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       fillHomeFields();
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
       renderAll();
       resetSopForm();
       resetEduForm();
@@ -961,7 +963,7 @@
       }
       map[newKey] = ["새소분류"];
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
       setStatus("중분류 행이 추가됐어", true);
     }
 
@@ -971,7 +973,7 @@
       if (!key) return;
       delete state.sopCategoryMap[key];
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
     }
 
     function addSubCategoryInput(index) {
@@ -979,7 +981,7 @@
       if (!key) return;
       state.sopCategoryMap[key].push("새소분류");
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
     }
 
     function removeSubCategoryInput(index, subIndex) {
@@ -987,7 +989,7 @@
       if (!key) return;
       state.sopCategoryMap[key].splice(subIndex, 1);
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
     }
 
     function applyCategoryMapFromEditor() {
@@ -1012,28 +1014,20 @@
       state.sopCategoryMap = nextMap;
       normalizeSopItemsByCategoryMap();
       renderCategoryMapEditor();
-      initSopCategorySelects();
+      initSopCategoryInputs();
       renderSopList();
       saveAll();
     }
 
-    function initSopCategorySelects() {
+    function initSopCategoryInputs() {
       const map = getCategoryMap();
-      const midSelect = qs("sopMidCategory");
-      const mids = Object.keys(map);
-      midSelect.innerHTML = mids.map(mid => `<option value="${mid}">${mid}</option>`).join("");
-      populateSopSubCategorySelect(midSelect.value || mids[0] || "");
+      qs("midCategoryList").innerHTML = Object.keys(map).map(mid => `<option value="${mid}"></option>`).join("");
+      updateSubCategoryDatalist(qs("sopMidCategory").value.trim() || Object.keys(map)[0] || "");
     }
 
-    function populateSopSubCategorySelect(mid, selectedSub = "") {
-      const subSelect = qs("sopTopicTitle");
+    function updateSubCategoryDatalist(mid) {
       const list = getCategoryMap()[mid] || [];
-      subSelect.innerHTML = list.map(sub => `<option value="${sub}">${sub}</option>`).join("");
-      if (selectedSub && list.includes(selectedSub)) {
-        subSelect.value = selectedSub;
-      } else if (list.length) {
-        subSelect.value = list[0];
-      }
+      qs("subCategoryList").innerHTML = list.map(sub => `<option value="${sub}"></option>`).join("");
     }
 
     function findMidCategoryByTopic(topicTitle = "") {
@@ -1042,40 +1036,69 @@
       for (const [mid, subs] of Object.entries(map)) {
         if ((subs || []).includes(topic)) return mid;
       }
-      return Object.keys(map)[0] || "";
+      return "";
     }
 
     function normalizeSopItemsByCategoryMap() {
-      const map = getCategoryMap();
-      const firstMid = Object.keys(map)[0] || "";
-      const firstSub = firstMid ? (map[firstMid][0] || "") : "";
-
       state.sop = (state.sop || []).map(item => {
-        const mid = item.midCategory && map[item.midCategory] ? item.midCategory : findMidCategoryByTopic(item.topicTitle) || firstMid;
-        const validSubs = map[mid] || [];
-        const topicTitle = validSubs.includes(item.topicTitle) ? item.topicTitle : (validSubs[0] || firstSub);
-        return { ...item, midCategory: mid, topicTitle };
+        const typedMid = String(item.midCategory || "").trim();
+        const typedSub = String(item.topicTitle || "").trim();
+        const inferredMid = typedMid || findMidCategoryByTopic(typedSub);
+        return {
+          ...item,
+          midCategory: inferredMid,
+          topicTitle: typedSub
+        };
       });
     }
 
-    function readFilesAsDataUrls(fileList) {
+    async function compressImageFile(file, maxWidth = 1400, quality = 0.82) {
+      if (!file.type.startsWith("image/")) {
+        throw new Error("이미지 파일만 첨부할 수 있어.");
+      }
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxWidth || height > maxWidth) {
+              if (width > height) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+              } else {
+                width = Math.round(width * (maxWidth / height));
+                height = maxWidth;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const outputType = "image/jpeg";
+            const dataUrl = canvas.toDataURL(outputType, quality);
+
+            resolve({
+              name: file.name,
+              size: Math.round((dataUrl.length * 3) / 4),
+              src: dataUrl
+            });
+          };
+          img.onerror = () => reject(new Error(file.name + " 이미지를 읽지 못했어."));
+          img.src = reader.result;
+        };
+        reader.onerror = () => reject(new Error(file.name + " 파일을 읽지 못했어."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function readFilesAsCompressedDataUrls(fileList) {
       const files = Array.from(fileList || []);
-      return Promise.all(files.map(file => {
-        return new Promise((resolve, reject) => {
-          if (!file.type.startsWith("image/")) {
-            reject(new Error("이미지 파일만 첨부할 수 있어."));
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = () => resolve({
-            name: file.name,
-            size: file.size,
-            src: reader.result
-          });
-          reader.onerror = () => reject(new Error(file.name + " 파일을 읽지 못했어."));
-          reader.readAsDataURL(file);
-        });
-      }));
+      return Promise.all(files.map(file => compressImageFile(file)));
     }
 
     function formatBytes(bytes = 0) {
@@ -1131,7 +1154,7 @@
 
     async function handleSopImageSelect(e) {
       try {
-        const picked = await readFilesAsDataUrls(e.target.files);
+        const picked = await readFilesAsCompressedDataUrls(e.target.files);
         const remain = MAX_SOP_IMAGES - currentSopImages.length;
         if (remain <= 0) {
           alert(`SOP 이미지는 최대 ${MAX_SOP_IMAGES}장까지 가능해.`);
@@ -1152,7 +1175,7 @@
 
     async function handleEduImageSelect(e) {
       try {
-        const picked = await readFilesAsDataUrls(e.target.files);
+        const picked = await readFilesAsCompressedDataUrls(e.target.files);
         const remain = MAX_EDU_IMAGES - currentEduImages.length;
         if (remain <= 0) {
           alert(`상품자료 이미지는 최대 ${MAX_EDU_IMAGES}장까지 가능해.`);
@@ -1203,8 +1226,9 @@
       const item = state.sop[index];
       editIndex.sop = index;
       qs("sopChapter").value = item.chapter || "";
-      qs("sopMidCategory").value = item.midCategory || Object.keys(getCategoryMap())[0] || "";
-      populateSopSubCategorySelect(qs("sopMidCategory").value, item.topicTitle || "");
+      qs("sopMidCategory").value = item.midCategory || "";
+      updateSubCategoryDatalist(qs("sopMidCategory").value.trim());
+      qs("sopTopicTitle").value = item.topicTitle || "";
       qs("sopSummary").value = item.topicSummary || "";
       qs("sopDetail").value = item.detailText || "";
       qs("sopOrder").value = item.order || "";
@@ -1234,12 +1258,10 @@
     function resetSopForm() {
       editIndex.sop = -1;
       currentSopImages = [];
-      ["sopChapter","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
+      ["sopChapter","sopMidCategory","sopTopicTitle","sopSummary","sopDetail","sopOrder","sopTags","sopVideo","sopImageFiles"].forEach(id => {
         if (qs(id)) qs(id).value = "";
       });
-      const firstMid = Object.keys(getCategoryMap())[0] || "";
-      qs("sopMidCategory").value = firstMid;
-      populateSopSubCategorySelect(firstMid);
+      updateSubCategoryDatalist("");
       renderSopPreview();
     }
 
@@ -1623,8 +1645,8 @@
       });
     });
 
-    qs("sopMidCategory").addEventListener("change", (e) => {
-      populateSopSubCategorySelect(e.target.value);
+    qs("sopMidCategory").addEventListener("input", (e) => {
+      updateSubCategoryDatalist(e.target.value.trim());
     });
 
     qs("sopImageFiles").addEventListener("change", handleSopImageSelect);
