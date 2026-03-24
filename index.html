@@ -36,7 +36,10 @@
       overflow-x:hidden;
     }
 
-    body.test-lock{overflow:hidden;}
+    body.test-lock{
+      overflow:hidden;
+      touch-action:none;
+    }
 
     a{text-decoration:none;color:inherit}
     img{max-width:100%;display:block}
@@ -615,20 +618,20 @@
 
     .test-intro{
       display:grid;
-      gap:14px;
+      gap:16px;
       max-width:560px;
     }
 
-    .test-intro-box{
-      padding:22px;
-      border-radius:22px;
+    .test-intro-card{
       background:rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      padding:22px;
     }
 
     .test-intro-title{
       margin:0 0 8px;
-      font-size:1.15rem;
+      font-size:1.16rem;
       font-weight:900;
     }
 
@@ -650,56 +653,50 @@
       font-size:1rem;
     }
 
-    .test-session-overlay{
+    .test-overlay{
       position:fixed;
       inset:0;
-      z-index:2500;
-      background:rgba(7,11,22,.92);
-      backdrop-filter:blur(10px);
+      z-index:4000;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,79,159,.18), transparent 26%),
+        radial-gradient(circle at 80% 20%, rgba(138,92,255,.18), transparent 26%),
+        linear-gradient(180deg, rgba(10,15,31,.96), rgba(13,19,38,.98));
       display:none;
       overflow-y:auto;
-      padding:28px 16px 40px;
+      padding:24px 14px 40px;
     }
 
-    .test-session-overlay.show{display:block}
+    .test-overlay.show{display:block}
 
-    .test-session-card{
-      width:min(920px, 100%);
+    .test-overlay-card{
+      width:min(980px, 100%);
       margin:0 auto;
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
       border:1px solid rgba(255,255,255,.08);
       border-radius:28px;
-      box-shadow:var(--shadow);
       padding:22px;
+      box-shadow:var(--shadow);
     }
 
-    .test-session-head{
+    .test-overlay-head{
       display:flex;
-      align-items:flex-end;
       justify-content:space-between;
-      gap:14px;
+      align-items:flex-end;
+      gap:16px;
       margin-bottom:18px;
       flex-wrap:wrap;
     }
 
-    .test-session-title{
+    .test-overlay-title{
       margin:0;
       font-size:1.35rem;
       font-weight:900;
     }
 
-    .test-session-desc{
+    .test-overlay-desc{
       margin:8px 0 0;
       color:var(--muted);
       line-height:1.6;
-    }
-
-    .test-submit-row{
-      display:flex;
-      gap:12px;
-      margin-top:18px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
     }
 
     .question{
@@ -919,6 +916,8 @@
       border-radius:14px;
       padding:12px 14px;
       outline:none;
+      -webkit-appearance:none;
+      appearance:none;
     }
 
     .auth-actions{
@@ -1071,6 +1070,8 @@
       .slide-top{padding:18px 18px 8px}
       .gallery,.video-wrap{padding:0 18px 18px}
       .form-grid{grid-template-columns:1fr}
+      .test-overlay{padding:16px 10px 28px}
+      .test-overlay-card{padding:18px}
     }
   </style>
 </head>
@@ -1089,11 +1090,11 @@
       <div id="auth-login">
         <div class="field">
           <label>아이디</label>
-          <input id="loginUsername" />
+          <input id="loginUsername" autocomplete="username" autocapitalize="none" spellcheck="false" />
         </div>
         <div class="field">
           <label>비밀번호</label>
-          <input id="loginPassword" type="password" />
+          <input id="loginPassword" type="password" autocomplete="current-password" />
         </div>
         <div class="auth-actions">
           <button class="auth-btn primary" onclick="loginUser()">로그인</button>
@@ -1116,11 +1117,11 @@
           </div>
           <div class="field">
             <label>핸드폰번호</label>
-            <input id="signupPhone" placeholder="숫자만 입력" />
+            <input id="signupPhone" inputmode="numeric" placeholder="숫자만 입력" />
           </div>
           <div class="field">
             <label>아이디</label>
-            <input id="signupUsername" />
+            <input id="signupUsername" autocapitalize="none" spellcheck="false" />
           </div>
           <div class="field">
             <label>비밀번호</label>
@@ -1135,11 +1136,11 @@
       <div id="auth-reset" class="hidden">
         <div class="field">
           <label>아이디</label>
-          <input id="resetUsername" />
+          <input id="resetUsername" autocapitalize="none" spellcheck="false" />
         </div>
         <div class="field">
           <label>핸드폰번호</label>
-          <input id="resetPhone" placeholder="회원가입 때 입력한 번호" />
+          <input id="resetPhone" inputmode="numeric" placeholder="회원가입 때 입력한 번호" />
         </div>
         <div class="field">
           <label>새 비밀번호</label>
@@ -1281,15 +1282,15 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">테스트</h2>
-            <p class="section-desc">테스트 시작 전 이름을 입력하고 시작 버튼을 눌러주세요.</p>
+            <p class="section-desc">테스트 시작 전에 이름을 입력하고 시작해주세요.</p>
           </div>
           <div class="badge" id="test-count-badge">0문항</div>
         </div>
 
         <div class="test-intro">
-          <div class="test-intro-box">
+          <div class="test-intro-card">
             <h3 class="test-intro-title">테스트 시작</h3>
-            <p class="test-intro-desc">이름을 입력하고 시작하면 테스트 화면만 열립니다.
+            <p class="test-intro-desc">이름 입력 후 시작하기를 누르면 테스트 창만 열립니다.
 제출 후 점수는 화면에 표시되지 않고 관리자 페이지에 기록됩니다.</p>
             <input id="test-user-name" class="test-name-input" type="text" placeholder="이름을 입력하세요" />
             <div class="submit-row" style="margin-top:14px;">
@@ -1305,17 +1306,19 @@
       </div>
     </section>
 
-    <div id="test-session-overlay" class="test-session-overlay">
-      <div class="test-session-card">
-        <div class="test-session-head">
+    <div id="test-overlay" class="test-overlay">
+      <div class="test-overlay-card">
+        <div class="test-overlay-head">
           <div>
-            <h3 class="test-session-title">테스트 진행 중</h3>
-            <p class="test-session-desc" id="test-session-desc">이름: -</p>
+            <h3 class="test-overlay-title">테스트 진행 중</h3>
+            <p class="test-overlay-desc" id="test-overlay-desc">이름: -</p>
           </div>
-          <div class="badge" id="test-session-count-badge">0문항</div>
+          <div class="badge" id="test-overlay-count-badge">0문항</div>
         </div>
+
         <div id="test-question-area" class="test-box"></div>
-        <div class="test-submit-row">
+
+        <div class="submit-row" style="justify-content:flex-end; margin-top:18px;">
           <button class="cta primary" onclick="submitTest()">제출하기</button>
         </div>
       </div>
@@ -1334,16 +1337,28 @@
   <script>
     const STORAGE_KEY = "yurim_telecom_admin_data_v2";
     const SESSION_KEY = "yurim_user_session_v1";
+    const SESSION_FALLBACK_KEY = "yurim_user_session_fallback_v1";
     const ADMIN_PASSWORD = "0728";
     const ADMIN_URL = "/-3/admin.html";
     const SURVEY_URL = "https://rkdtnw2.github.io/-html/";
 
-    const SOP_CATEGORY_MAP = {
+    const DEFAULT_CATEGORY_MAP = {
       "기본기": ["내방고객응대표준SOP", "오딧"],
       "응대": ["통신용어", "필름교체"],
       "UCRM": ["내방고객", "외부활동"],
       "맞춤제안": ["선택약정", "요금제변경"]
     };
+
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function createId(prefix) {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
 
     const defaultData = {
       home: {
@@ -1360,42 +1375,46 @@
       edu: [],
       test: [],
       testResults: [],
-      sopCategoryMap: JSON.parse(JSON.stringify(SOP_CATEGORY_MAP)),
+      sopCategoryMap: deepClone(DEFAULT_CATEGORY_MAP),
       members: []
     };
 
-    let state = structuredClone(defaultData);
+    let state = deepClone(defaultData);
     let currentChapter = "";
-    let currentSubCategory = "내방고객응대표준SOP";
     let currentMidCategory = "기본기";
+    let currentSubCategory = "내방고객응대표준SOP";
     let dynamicAnswerKey = {};
     let currentUser = null;
-    let testInProgress = false;
-    let testParticipantName = "";
+    let isTestRunning = false;
+    let currentTestName = "";
 
     function safeText(v) {
       return v == null ? "" : String(v).trim();
     }
 
+    function safeLower(v) {
+      return safeText(v).toLowerCase();
+    }
+
     function escapeHtml(value = "") {
       return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function escapeJs(value = "") {
       return String(value)
-        .replaceAll("\\", "\\\\")
-        .replaceAll("'", "\\'")
-        .replaceAll('"', '\\"')
-        .replaceAll("\n", "\\n");
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n");
     }
 
     function uniq(arr) {
-      return [...new Set(arr)];
+      return Array.from(new Set(arr));
     }
 
     function slugify(str = "") {
@@ -1412,6 +1431,60 @@
       return String(v).replace(/\D/g, "");
     }
 
+    function getCategoryMap() {
+      const map = state.sopCategoryMap;
+      if (!map || !Object.keys(map).length) {
+        state.sopCategoryMap = deepClone(DEFAULT_CATEGORY_MAP);
+      }
+      return state.sopCategoryMap;
+    }
+
+    function inferMidCategory(topicTitle = "") {
+      const topic = safeText(topicTitle);
+      const map = getCategoryMap();
+      const found = Object.keys(map).find(mid => (map[mid] || []).includes(topic));
+      return found || "";
+    }
+
+    function getAvailableSubCategories(midCategory) {
+      const map = getCategoryMap();
+      const allSubs = map[midCategory] || [];
+      const existingTopics = uniq(
+        (state.sop || [])
+          .filter(item => inferMidCategory(item.topicTitle) === midCategory)
+          .map(item => safeText(item.topicTitle))
+          .filter(Boolean)
+      );
+      return allSubs.filter(sub => existingTopics.includes(sub));
+    }
+
+    function syncSopCategoryState() {
+      const map = getCategoryMap();
+      const mids = Object.keys(map).filter(mid =>
+        (state.sop || []).some(item => inferMidCategory(item.topicTitle) === mid)
+      );
+
+      if (!mids.length) {
+        currentMidCategory = Object.keys(map)[0] || "";
+        currentSubCategory = "";
+        return;
+      }
+
+      if (mids.indexOf(currentMidCategory) === -1) {
+        currentMidCategory = mids[0];
+      }
+
+      const subs = getAvailableSubCategories(currentMidCategory);
+      if (!subs.length) {
+        currentSubCategory = "";
+        return;
+      }
+
+      if (subs.indexOf(currentSubCategory) === -1) {
+        currentSubCategory = subs[0];
+      }
+    }
+
     function normalizeImageUrl(url = "") {
       const raw = safeText(url);
       if (!raw) return "";
@@ -1421,17 +1494,17 @@
       if (/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|avif)(\?.*)?$/i.test(raw)) return raw;
 
       const imgurPageMatch = raw.match(/^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]+)$/i);
-      if (imgurPageMatch?.[1]) return `https://i.imgur.com/${imgurPageMatch[1]}.jpg`;
+      if (imgurPageMatch && imgurPageMatch[1]) return `https://i.imgur.com/${imgurPageMatch[1]}.jpg`;
 
-      if (raw.includes("drive.google.com")) {
+      if (raw.indexOf("drive.google.com") > -1) {
         const fileMatch = raw.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (fileMatch?.[1]) return `https://drive.google.com/thumbnail?id=${fileMatch[1]}&sz=w2000`;
+        if (fileMatch && fileMatch[1]) return `https://drive.google.com/thumbnail?id=${fileMatch[1]}&sz=w2000`;
 
         const openMatch = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (openMatch?.[1]) return `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w2000`;
+        if (openMatch && openMatch[1]) return `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w2000`;
 
         const ucMatch = raw.match(/uc\?export=(?:view|download)&id=([a-zA-Z0-9_-]+)/);
-        if (ucMatch?.[1]) return `https://drive.google.com/thumbnail?id=${ucMatch[1]}&sz=w2000`;
+        if (ucMatch && ucMatch[1]) return `https://drive.google.com/thumbnail?id=${ucMatch[1]}&sz=w2000`;
       }
 
       return raw;
@@ -1441,13 +1514,13 @@
       const raw = safeText(url);
       if (!raw) return "";
 
-      if (raw.includes("youtube.com/watch?v=")) {
-        const id = raw.split("v=")[1]?.split("&")[0];
+      if (raw.indexOf("youtube.com/watch?v=") > -1) {
+        const id = raw.split("v=")[1] ? raw.split("v=")[1].split("&")[0] : "";
         if (id) return `https://www.youtube.com/embed/${id}`;
       }
 
-      if (raw.includes("youtu.be/")) {
-        const id = raw.split("youtu.be/")[1]?.split("?")[0];
+      if (raw.indexOf("youtu.be/") > -1) {
+        const id = raw.split("youtu.be/")[1] ? raw.split("youtu.be/")[1].split("?")[0] : "";
         if (id) return `https://www.youtube.com/embed/${id}`;
       }
 
@@ -1458,7 +1531,7 @@
       const videoUrl = normalizeVideoUrl(url);
       if (!videoUrl) return "";
 
-      if (videoUrl.includes("youtube.com/embed/")) {
+      if (videoUrl.indexOf("youtube.com/embed/") > -1) {
         return `
           <div class="video-wrap">
             <iframe class="video-frame" src="${videoUrl}" allowfullscreen></iframe>
@@ -1469,7 +1542,7 @@
       if (/\.mp4(\?.*)?$/i.test(videoUrl) || /\.webm(\?.*)?$/i.test(videoUrl)) {
         return `
           <div class="video-wrap">
-            <video class="video-native" controls src="${videoUrl}"></video>
+            <video class="video-native" controls playsinline webkit-playsinline src="${videoUrl}"></video>
           </div>
         `;
       }
@@ -1483,7 +1556,7 @@
       if (Array.isArray(item.images) && item.images.length) {
         images = item.images.map(v => {
           if (typeof v === "string") return v;
-          return v?.src || "";
+          return v && v.src ? v.src : "";
         });
       } else {
         images = [
@@ -1492,22 +1565,26 @@
         ].filter(Boolean);
       }
 
-      return images
-        .map(normalizeImageUrl)
-        .filter(Boolean)
-        .slice(0, maxCount);
+      return images.map(normalizeImageUrl).filter(Boolean).slice(0, maxCount);
     }
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          state = JSON.parse(raw);
+          const parsed = JSON.parse(raw);
+          state = Object.assign(deepClone(defaultData), parsed || {});
         } else {
+          state = deepClone(defaultData);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
       } catch (e) {
-        state = structuredClone(defaultData);
+        state = deepClone(defaultData);
+      }
+
+      if (!Array.isArray(state.testResults)) state.testResults = [];
+      if (!state.sopCategoryMap || !Object.keys(state.sopCategoryMap).length) {
+        state.sopCategoryMap = deepClone(DEFAULT_CATEGORY_MAP);
       }
     }
 
@@ -1516,25 +1593,28 @@
     }
 
     function loadSession() {
+      currentUser = null;
       try {
-        const raw = sessionStorage.getItem(SESSION_KEY);
+        const raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_FALLBACK_KEY);
         currentUser = raw ? JSON.parse(raw) : null;
-      } catch {
+      } catch (e) {
         currentUser = null;
       }
     }
 
     function saveSession(member) {
       currentUser = member;
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(member));
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(member)); } catch (e) {}
+      try { localStorage.setItem(SESSION_FALLBACK_KEY, JSON.stringify(member)); } catch (e) {}
     }
 
     function clearSession() {
       currentUser = null;
-      sessionStorage.removeItem(SESSION_KEY);
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+      try { localStorage.removeItem(SESSION_FALLBACK_KEY); } catch (e) {}
     }
 
-    function setAuthMessage(text, ok = false) {
+    function setAuthMessage(text, ok) {
       const el = document.getElementById("authMsg");
       el.textContent = text;
       el.className = "auth-msg " + (ok ? "ok" : "err");
@@ -1542,13 +1622,13 @@
 
     function switchAuthTab(tab) {
       document.querySelectorAll(".auth-tab").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.authTab === tab);
+        btn.classList.toggle("active", btn.getAttribute("data-auth-tab") === tab);
       });
 
       document.getElementById("auth-login").classList.toggle("hidden", tab !== "login");
       document.getElementById("auth-signup").classList.toggle("hidden", tab !== "signup");
       document.getElementById("auth-reset").classList.toggle("hidden", tab !== "reset");
-      setAuthMessage("");
+      setAuthMessage("", false);
     }
 
     function signupUser() {
@@ -1560,17 +1640,17 @@
       const password = safeText(document.getElementById("signupPassword").value);
 
       if (!branch || !name || !birth || !phone || !username || !password) {
-        setAuthMessage("회원가입 항목을 모두 입력해줘.");
+        setAuthMessage("회원가입 항목을 모두 입력해줘.", false);
         return;
       }
 
-      if ((state.members || []).some(m => m.username === username)) {
-        setAuthMessage("이미 사용 중인 아이디야.");
+      if ((state.members || []).some(m => safeLower(m.username) === safeLower(username))) {
+        setAuthMessage("이미 사용 중인 아이디야.", false);
         return;
       }
 
       const member = {
-        id: crypto.randomUUID ? crypto.randomUUID() : "m_" + Date.now(),
+        id: createId("member"),
         branch,
         name,
         birth,
@@ -1599,12 +1679,17 @@
       const username = safeText(document.getElementById("loginUsername").value);
       const password = safeText(document.getElementById("loginPassword").value);
 
+      if (!username || !password) {
+        setAuthMessage("아이디와 비밀번호를 입력해줘.", false);
+        return;
+      }
+
       const member = (state.members || []).find(
-        m => m.username === username && m.password === password
+        m => safeLower(m.username) === safeLower(username) && safeText(m.password) === password
       );
 
       if (!member) {
-        setAuthMessage("아이디 또는 비밀번호가 올바르지 않아.");
+        setAuthMessage("아이디 또는 비밀번호가 올바르지 않아.", false);
         return;
       }
 
@@ -1625,16 +1710,16 @@
       const newPassword = safeText(document.getElementById("resetNewPassword").value);
 
       if (!username || !phone || !newPassword) {
-        setAuthMessage("재설정 항목을 모두 입력해줘.");
+        setAuthMessage("재설정 항목을 모두 입력해줘.", false);
         return;
       }
 
       const member = (state.members || []).find(
-        m => m.username === username && normalizePhone(m.phone) === phone
+        m => safeLower(m.username) === safeLower(username) && normalizePhone(m.phone) === phone
       );
 
       if (!member) {
-        setAuthMessage("일치하는 회원 정보를 찾지 못했어.");
+        setAuthMessage("일치하는 회원 정보를 찾지 못했어.", false);
         return;
       }
 
@@ -1674,13 +1759,14 @@
     function syncHeaderHeight() {
       const topbar = document.querySelector(".topbar");
       if (!topbar) return;
-      document.documentElement.style.setProperty("--header-height", `${topbar.offsetHeight}px`);
+      document.documentElement.style.setProperty("--header-height", topbar.offsetHeight + "px");
     }
 
     function setView(view) {
-      if (testInProgress && view !== "test") return;
+      if (isTestRunning && view !== "test") return;
+
       document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.view === view);
+        btn.classList.toggle("active", btn.getAttribute("data-view") === view);
       });
 
       document.getElementById("home-view").classList.toggle("hidden-view", view !== "home");
@@ -1713,7 +1799,7 @@
         return;
       }
 
-      if (!currentChapter || !chapters.includes(currentChapter)) currentChapter = chapters[0];
+      if (!currentChapter || chapters.indexOf(currentChapter) === -1) currentChapter = chapters[0];
 
       list.innerHTML = chapters.map(ch => `
         <button class="chapter-btn ${currentChapter === ch ? "active" : ""}" onclick="selectChapter('${escapeJs(ch)}')">
@@ -1722,68 +1808,24 @@
       `).join("");
     }
 
-    function inferMidCategory(topicTitle = "") {
-      const normalized = safeText(topicTitle);
-      return Object.keys(SOP_CATEGORY_MAP).find(mid =>
-        SOP_CATEGORY_MAP[mid].includes(normalized)
-      ) || "기본기";
-    }
-
-    function getAvailableSubCategories(midCategory) {
-      const allSubs = SOP_CATEGORY_MAP[midCategory] || [];
-      const existingTopics = uniq(
-        (state.sop || [])
-          .filter(item => inferMidCategory(item.topicTitle) === midCategory)
-          .map(item => safeText(item.topicTitle))
-          .filter(Boolean)
-      );
-
-      return allSubs.filter(sub => existingTopics.includes(sub));
-    }
-
-    function syncSopCategoryState() {
-      const availableMids = Object.keys(SOP_CATEGORY_MAP).filter(mid =>
-        (state.sop || []).some(item => inferMidCategory(item.topicTitle) === mid)
-      );
-
-      if (!availableMids.length) {
-        currentMidCategory = "기본기";
-        currentSubCategory = "";
-        return;
-      }
-
-      if (!availableMids.includes(currentMidCategory)) {
-        currentMidCategory = availableMids[0];
-      }
-
-      const availableSubs = getAvailableSubCategories(currentMidCategory);
-      if (!availableSubs.length) {
-        currentSubCategory = "";
-        return;
-      }
-
-      if (!availableSubs.includes(currentSubCategory)) {
-        currentSubCategory = availableSubs[0];
-      }
-    }
-
     function renderSopFilterPanel() {
       syncSopCategoryState();
 
-      const midButtons = Object.keys(SOP_CATEGORY_MAP)
-        .filter(mid => (state.sop || []).some(item => inferMidCategory(item.topicTitle) === mid))
-        .map(mid => `
-          <button class="filter-chip ${currentMidCategory === mid ? "active" : ""}" onclick="selectMidCategory('${escapeJs(mid)}')">
-            ${escapeHtml(mid)}
-          </button>
-        `).join("");
+      const activeMids = Object.keys(getCategoryMap()).filter(mid =>
+        (state.sop || []).some(item => inferMidCategory(item.topicTitle) === mid)
+      );
 
-      const subButtons = getAvailableSubCategories(currentMidCategory)
-        .map(sub => `
-          <button class="filter-chip ${currentSubCategory === sub ? "active" : ""}" onclick="selectSubCategory('${escapeJs(sub)}')">
-            ${escapeHtml(sub)}
-          </button>
-        `).join("");
+      const midButtons = activeMids.map(mid => `
+        <button class="filter-chip ${currentMidCategory === mid ? "active" : ""}" onclick="selectMidCategory('${escapeJs(mid)}')">
+          ${escapeHtml(mid)}
+        </button>
+      `).join("");
+
+      const subButtons = getAvailableSubCategories(currentMidCategory).map(sub => `
+        <button class="filter-chip ${currentSubCategory === sub ? "active" : ""}" onclick="selectSubCategory('${escapeJs(sub)}')">
+          ${escapeHtml(sub)}
+        </button>
+      `).join("");
 
       return `
         <section class="sop-filter-card">
@@ -1805,11 +1847,11 @@
       const area = document.getElementById("sop-slide-area");
       const badge = document.getElementById("sop-count-badge");
       const info = document.getElementById("search-result-info");
-      const keyword = safeText(document.getElementById("sop-search").value).toLowerCase();
+      const keyword = safeLower(document.getElementById("sop-search").value);
 
       syncSopCategoryState();
 
-      let filtered = [...(state.sop || [])];
+      let filtered = [].concat(state.sop || []);
 
       if (keyword) {
         filtered = filtered.filter(item => {
@@ -1819,9 +1861,9 @@
             item.topicSummary,
             item.detailText,
             inferMidCategory(item.topicTitle),
-            ...(toArrayText(item.tags))
+            toArrayText(item.tags).join(" ")
           ].join(" ").toLowerCase();
-          return joined.includes(keyword);
+          return joined.indexOf(keyword) > -1;
         });
         info.textContent = filtered.length ? `"${keyword}" 검색 결과 ${filtered.length}개` : `"${keyword}" 검색 결과가 없습니다.`;
       } else {
@@ -1880,6 +1922,8 @@
                       <img
                         src="${img}"
                         alt="${escapeHtml(item.topicTitle || 'SOP 이미지')}"
+                        loading="lazy"
+                        decoding="async"
                         onclick="openLightbox('${escapeJs(img)}')"
                         onerror="this.style.display='none'"
                       >
@@ -1906,8 +1950,8 @@
 
     function selectMidCategory(midCategory) {
       currentMidCategory = midCategory;
-      const availableSubs = getAvailableSubCategories(midCategory);
-      currentSubCategory = availableSubs[0] || "";
+      const subList = getAvailableSubCategories(midCategory);
+      currentSubCategory = subList[0] || "";
       renderSopSlides();
     }
 
@@ -1927,7 +1971,7 @@
 
     function jumpToTopicTag(tag) {
       const matched = (state.sop || []).find(item =>
-        safeText(item.topicTitle).toLowerCase() === safeText(tag).toLowerCase()
+        safeLower(item.topicTitle) === safeLower(tag)
       );
 
       if (!matched) {
@@ -1971,6 +2015,8 @@
                 class="edu-thumb"
                 src="${mainImage}"
                 alt="${escapeHtml(item.title || '상품자료 이미지')}"
+                loading="lazy"
+                decoding="async"
                 onclick="openLightbox('${escapeJs(mainImage)}')"
                 onerror="this.outerHTML='<div class=&quot;edu-thumb&quot; style=&quot;display:grid;place-items:center;color:#94a5c8;font-weight:700;&quot;>이미지 없음</div>'"
               >
@@ -1986,6 +2032,8 @@
                   <img
                     src="${img}"
                     alt="${escapeHtml(item.title || '상품자료 이미지')}"
+                    loading="lazy"
+                    decoding="async"
                     onclick="openLightbox('${escapeJs(img)}')"
                     onerror="this.style.display='none'"
                   >
@@ -2011,10 +2059,9 @@
 
     function renderTest() {
       const area = document.getElementById("test-question-area");
-      const data = [...(state.test || [])].sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
+      const data = [].concat(state.test || []).sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
       document.getElementById("test-count-badge").textContent = `${data.length}문항`;
-      const overlayBadge = document.getElementById("test-session-count-badge");
-      if (overlayBadge) overlayBadge.textContent = `${data.length}문항`;
+      document.getElementById("test-overlay-count-badge").textContent = `${data.length}문항`;
 
       if (!data.length) {
         area.innerHTML = `<div class="empty">등록된 테스트 문항이 없습니다.</div>`;
@@ -2025,7 +2072,7 @@
 
       area.innerHTML = data.map((q, index) => {
         const no = index + 1;
-        dynamicAnswerKey[`q${no}`] = {
+        dynamicAnswerKey["q" + no] = {
           answer: String(q.answer || "").trim(),
           explanation: q.explanation || "",
           title: q.title || ""
@@ -2052,72 +2099,74 @@
     function startTestSession() {
       const nameInput = document.getElementById("test-user-name");
       const enteredName = safeText(nameInput.value);
+
       if (!enteredName) {
         alert("이름을 입력해줘.");
         nameInput.focus();
         return;
       }
+
       if (!(state.test || []).length) {
         alert("등록된 테스트 문항이 없습니다.");
         return;
       }
 
-      testParticipantName = enteredName;
-      testInProgress = true;
+      currentTestName = enteredName;
+      isTestRunning = true;
       renderTest();
-      document.getElementById("test-session-desc").textContent = `이름: ${enteredName}`;
-      document.getElementById("test-session-overlay").classList.add("show");
+      document.getElementById("test-overlay-desc").textContent = `이름: ${enteredName}`;
+      document.getElementById("test-overlay").classList.add("show");
       document.body.classList.add("test-lock");
       document.getElementById("test-result-box").style.display = "none";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function finishTestSession(message) {
-      testInProgress = false;
-      document.getElementById("test-session-overlay").classList.remove("show");
+      isTestRunning = false;
+      document.getElementById("test-overlay").classList.remove("show");
       document.body.classList.remove("test-lock");
       document.getElementById("test-result-title").textContent = "제출 완료";
       document.getElementById("test-result-desc").textContent = message;
       document.getElementById("test-result-box").style.display = "block";
       document.getElementById("test-result-box").scrollIntoView({ behavior: "smooth", block: "start" });
+      currentTestName = "";
     }
 
     function submitTest() {
       const total = Object.keys(dynamicAnswerKey).length;
-      if (!total || !testInProgress) return;
+      if (!total || !isTestRunning) return;
 
       let correct = 0;
       const wrongList = [];
 
       for (let i = 1; i <= total; i++) {
-        const selected = document.querySelector(`#test-session-overlay input[name="q${i}"]:checked`);
+        const selected = document.querySelector(`#test-overlay input[name="q${i}"]:checked`);
         const picked = selected ? selected.value : "";
-        const answer = dynamicAnswerKey[`q${i}`]?.answer || "";
+        const answer = dynamicAnswerKey["q" + i] ? dynamicAnswerKey["q" + i].answer : "";
 
         if (String(picked) === String(answer)) {
           correct++;
         } else {
           wrongList.push({
             no: i,
-            title: dynamicAnswerKey[`q${i}`]?.title || "",
+            title: dynamicAnswerKey["q" + i] ? dynamicAnswerKey["q" + i].title : "",
             picked: picked || "미응답",
-            answer,
-            explanation: dynamicAnswerKey[`q${i}`]?.explanation || "해설 없음"
+            answer: answer || "",
+            explanation: dynamicAnswerKey["q" + i] ? (dynamicAnswerKey["q" + i].explanation || "해설 없음") : "해설 없음"
           });
         }
       }
 
-      const score = Math.round((correct / total) * 100);
       const result = {
-        id: (crypto.randomUUID ? crypto.randomUUID() : `tr_${Date.now()}`),
-        name: testParticipantName,
-        userName: currentUser?.name || "",
-        branch: currentUser?.branch || "",
+        id: createId("test"),
+        name: currentTestName,
+        userName: currentUser && currentUser.name ? currentUser.name : "",
+        branch: currentUser && currentUser.branch ? currentUser.branch : "",
         submittedAt: new Date().toISOString(),
-        total,
-        correct,
-        score,
-        wrongList
+        total: total,
+        correct: correct,
+        score: Math.round((correct / total) * 100),
+        wrongList: wrongList
       };
 
       if (!Array.isArray(state.testResults)) state.testResults = [];
@@ -2125,7 +2174,6 @@
       saveState();
 
       document.getElementById("test-user-name").value = "";
-      testParticipantName = "";
       finishTestSession("제출이 완료되었습니다. 결과는 관리자 페이지에서 확인할 수 있습니다.");
     }
 
@@ -2149,12 +2197,12 @@
       const trigger = document.getElementById("secret-admin-trigger");
       if (!trigger) return;
 
-      trigger.addEventListener("click", () => {
+      trigger.addEventListener("click", function () {
         adminTapCount++;
 
         if (adminTapTimer) clearTimeout(adminTapTimer);
 
-        adminTapTimer = setTimeout(() => {
+        adminTapTimer = setTimeout(function () {
           adminTapCount = 0;
         }, 1500);
 
@@ -2189,16 +2237,29 @@
 
       const nameInput = document.getElementById("test-user-name");
       if (nameInput) {
-        nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startTestSession(); });
+        nameInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") startTestSession();
+        });
       }
 
       document.querySelectorAll(".auth-tab").forEach(btn => {
-        btn.addEventListener("click", () => switchAuthTab(btn.dataset.authTab));
+        btn.addEventListener("click", function () {
+          switchAuthTab(btn.getAttribute("data-auth-tab"));
+        });
       });
+
+      const loginPassword = document.getElementById("loginPassword");
+      if (loginPassword) {
+        loginPassword.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") loginUser();
+        });
+      }
     }
 
     document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
-      btn.addEventListener("click", () => setView(btn.dataset.view));
+      btn.addEventListener("click", function () {
+        setView(btn.getAttribute("data-view"));
+      });
     });
 
     document.getElementById("sop-search").addEventListener("input", renderSop);
