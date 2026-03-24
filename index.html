@@ -332,7 +332,7 @@
 
     .sop-layout{
       display:grid;
-      grid-template-columns:280px minmax(0,1fr);
+      grid-template-columns:240px minmax(0,1fr);
       gap:18px;
     }
 
@@ -351,13 +351,13 @@
       font-size:1rem;
     }
 
-    .chapter-list,.topic-list{
+    .chapter-list{
       display:flex;
       flex-direction:column;
       gap:10px;
     }
 
-    .chapter-btn,.topic-btn{
+    .chapter-btn{
       border:none;
       text-align:left;
       cursor:pointer;
@@ -371,15 +371,9 @@
       line-height:1.45;
     }
 
-    .chapter-btn.active,.topic-btn.active{
+    .chapter-btn.active{
       background:linear-gradient(135deg, rgba(255,79,159,.18), rgba(138,92,255,.18));
       border-color:rgba(255,255,255,.16);
-    }
-
-    .topics-wrap{
-      margin-top:18px;
-      padding-top:18px;
-      border-top:1px solid rgba(255,255,255,.08);
     }
 
     .slides{display:grid;gap:16px}
@@ -391,13 +385,68 @@
       border:1px solid rgba(255,255,255,.08);
     }
 
-    .slide-top{padding:22px 22px 10px}
+    .slide-top{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .filter-box{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .filter-line{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+
+    .filter-label{
+      min-width:52px;
+      font-size:.82rem;
+      font-weight:800;
+      color:#dfe8ff;
+      display:flex;
+      align-items:center;
+    }
+
+    .filter-chip{
+      border:none;
+      cursor:pointer;
+      border-radius:999px;
+      padding:10px 14px;
+      color:#fff;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:.88rem;
+      font-weight:800;
+      transition:.22s ease;
+    }
+
+    .filter-chip:hover{
+      transform:translateY(-1px);
+      background:rgba(255,255,255,.10);
+    }
+
+    .filter-chip.active{
+      background:linear-gradient(135deg, var(--primary), var(--primary-2));
+      border-color:transparent;
+      box-shadow:0 10px 20px rgba(255,79,159,.18);
+    }
 
     .slide-meta{
       display:flex;
       flex-wrap:wrap;
       gap:8px;
-      margin-bottom:12px;
+      margin-bottom:0;
     }
 
     .chip{
@@ -411,7 +460,7 @@
     }
 
     .slide-title{
-      margin:0 0 10px;
+      margin:0;
       font-size:1.18rem;
       font-weight:900;
     }
@@ -425,7 +474,6 @@
     }
 
     .slide-detail{
-      margin-top:14px;
       padding:16px;
       border-radius:16px;
       background:rgba(255,255,255,.04);
@@ -436,7 +484,7 @@
       display:flex;
       flex-wrap:wrap;
       gap:8px;
-      margin-top:14px;
+      margin-top:0;
     }
 
     .tag-link{
@@ -920,9 +968,11 @@
       .gallery img{height:200px}
       .edu-thumb{height:220px}
       .panel{padding:20px;border-radius:24px}
-      .slide-top{padding:18px 18px 8px}
+      .slide-top{padding:18px}
       .gallery,.video-wrap{padding:0 18px 18px}
       .form-grid{grid-template-columns:1fr}
+      .filter-line{align-items:flex-start}
+      .filter-label{min-width:auto;width:100%}
     }
   </style>
 </head>
@@ -1106,11 +1156,6 @@
           <aside class="sidebar">
             <h4>챕터</h4>
             <div id="chapter-list" class="chapter-list"></div>
-
-            <div class="topics-wrap">
-              <h4 style="margin:0 0 14px;">주제</h4>
-              <div id="topic-list" class="topic-list"></div>
-            </div>
           </aside>
 
           <div>
@@ -1191,9 +1236,17 @@
       members: []
     };
 
+    const SOP_CATEGORY_MAP = {
+      "기본기": ["내방고객응대표준SOP", "오딧"],
+      "응대": ["통신용어", "필름교체"],
+      "UCRM": ["내방고객", "외부활동"],
+      "맞춤제안": ["선택약정", "요금제변경"]
+    };
+
     let state = structuredClone(defaultData);
     let currentChapter = "";
-    let currentTopic = "";
+    let currentMidCategory = "기본기";
+    let currentSubCategory = "내방고객응대표준SOP";
     let dynamicAnswerKey = {};
     let currentUser = null;
 
@@ -1320,6 +1373,54 @@
         .map(normalizeImageUrl)
         .filter(Boolean)
         .slice(0, maxCount);
+    }
+
+    function detectMidCategory(topicTitle = "") {
+      const title = safeText(topicTitle);
+      for (const [mid, subList] of Object.entries(SOP_CATEGORY_MAP)) {
+        if (subList.includes(title)) return mid;
+      }
+      return "";
+    }
+
+    function ensureValidSubCategory() {
+      const subList = SOP_CATEGORY_MAP[currentMidCategory] || [];
+      if (!subList.length) {
+        currentSubCategory = "";
+        return;
+      }
+      if (!subList.includes(currentSubCategory)) {
+        currentSubCategory = subList[0];
+      }
+    }
+
+    function renderSopFilterBox() {
+      ensureValidSubCategory();
+
+      const midButtons = Object.keys(SOP_CATEGORY_MAP).map(mid => `
+        <button class="filter-chip ${currentMidCategory === mid ? "active" : ""}" onclick="selectMidCategory('${escapeJs(mid)}')">
+          ${escapeHtml(mid)}
+        </button>
+      `).join("");
+
+      const subButtons = (SOP_CATEGORY_MAP[currentMidCategory] || []).map(sub => `
+        <button class="filter-chip ${currentSubCategory === sub ? "active" : ""}" onclick="selectSubCategory('${escapeJs(sub)}')">
+          ${escapeHtml(sub)}
+        </button>
+      `).join("");
+
+      return `
+        <div class="filter-box">
+          <div class="filter-line">
+            <div class="filter-label">중분류</div>
+            ${midButtons}
+          </div>
+          <div class="filter-line">
+            <div class="filter-label">소분류</div>
+            ${subButtons}
+          </div>
+        </div>
+      `;
     }
 
     function loadState() {
@@ -1545,30 +1646,6 @@
       `).join("");
     }
 
-    function renderTopicList() {
-      const list = document.getElementById("topic-list");
-      const topics = uniq(
-        (state.sop || [])
-          .filter(item => item.chapter === currentChapter)
-          .map(item => item.topicTitle)
-          .filter(Boolean)
-      );
-
-      if (!topics.length) {
-        currentTopic = "";
-        list.innerHTML = `<div class="empty">등록된 주제가 없습니다.</div>`;
-        return;
-      }
-
-      if (!currentTopic || !topics.includes(currentTopic)) currentTopic = topics[0];
-
-      list.innerHTML = topics.map(tp => `
-        <button class="topic-btn ${currentTopic === tp ? "active" : ""}" onclick="selectTopic('${escapeJs(tp)}')">
-          ${escapeHtml(tp)}
-        </button>
-      `).join("");
-    }
-
     function renderSopSlides() {
       const area = document.getElementById("sop-slide-area");
       const badge = document.getElementById("sop-count-badge");
@@ -1581,6 +1658,7 @@
         filtered = filtered.filter(item => {
           const joined = [
             item.chapter,
+            item.midCategory,
             item.topicTitle,
             item.topicSummary,
             item.detailText,
@@ -1590,7 +1668,10 @@
         });
         info.textContent = filtered.length ? `"${keyword}" 검색 결과 ${filtered.length}개` : `"${keyword}" 검색 결과가 없습니다.`;
       } else {
-        filtered = filtered.filter(item => item.chapter === currentChapter && (!currentTopic || item.topicTitle === currentTopic));
+        filtered = filtered.filter(item => {
+          const itemMid = safeText(item.midCategory) || detectMidCategory(item.topicTitle);
+          return item.chapter === currentChapter && itemMid === currentMidCategory && item.topicTitle === currentSubCategory;
+        });
         info.textContent = "";
       }
 
@@ -1598,19 +1679,30 @@
       badge.textContent = `${filtered.length}개 항목`;
 
       if (!filtered.length) {
-        area.innerHTML = `<div class="empty">표시할 SOP 항목이 없습니다.</div>`;
+        area.innerHTML = `
+          <article class="slide-card">
+            <div class="slide-top">
+              ${renderSopFilterBox()}
+              <div class="empty">표시할 SOP 항목이 없습니다.</div>
+            </div>
+          </article>
+        `;
         return;
       }
 
       area.innerHTML = filtered.map(item => {
         const tags = toArrayText(item.tags);
         const images = getImageArray(item, 10);
+        const itemMid = safeText(item.midCategory) || detectMidCategory(item.topicTitle);
 
         return `
           <article class="slide-card" id="topic-${slugify(item.topicTitle)}">
             <div class="slide-top">
+              ${renderSopFilterBox()}
+
               <div class="slide-meta">
                 ${item.chapter ? `<span class="chip">${escapeHtml(item.chapter)}</span>` : ""}
+                ${itemMid ? `<span class="chip">${escapeHtml(itemMid)}</span>` : ""}
                 ${item.topicTitle ? `<span class="chip">${escapeHtml(item.topicTitle)}</span>` : ""}
                 ${item.order ? `<span class="chip">순서 ${escapeHtml(item.order)}</span>` : ""}
                 ${images.length ? `<span class="chip">이미지 ${images.length}장</span>` : ""}
@@ -1648,25 +1740,30 @@
 
     function renderSop() {
       renderChapterList();
-      renderTopicList();
       renderSopSlides();
     }
 
     function selectChapter(chapter) {
       currentChapter = chapter;
-      currentTopic = "";
       renderSop();
     }
 
-    function selectTopic(topic) {
-      currentTopic = topic;
+    function selectMidCategory(mid) {
+      currentMidCategory = mid;
+      ensureValidSubCategory();
+      renderSop();
+    }
+
+    function selectSubCategory(sub) {
+      currentSubCategory = sub;
       renderSop();
     }
 
     function resetSopFilter() {
       document.getElementById("sop-search").value = "";
       currentChapter = uniq((state.sop || []).map(v => v.chapter).filter(Boolean))[0] || "";
-      currentTopic = "";
+      currentMidCategory = "기본기";
+      currentSubCategory = SOP_CATEGORY_MAP[currentMidCategory][0];
       renderSop();
     }
 
@@ -1682,7 +1779,8 @@
 
       document.getElementById("sop-search").value = "";
       currentChapter = matched.chapter;
-      currentTopic = matched.topicTitle;
+      currentMidCategory = safeText(matched.midCategory) || detectMidCategory(matched.topicTitle) || "기본기";
+      currentSubCategory = matched.topicTitle;
       setView("sop");
       renderSop();
 
@@ -1881,7 +1979,8 @@
       applyHome();
 
       currentChapter = uniq((state.sop || []).map(v => v.chapter).filter(Boolean))[0] || "";
-      currentTopic = "";
+      currentMidCategory = "기본기";
+      currentSubCategory = SOP_CATEGORY_MAP[currentMidCategory][0];
 
       renderSop();
       renderEdu();
